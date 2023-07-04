@@ -55,6 +55,7 @@ async function tweet({text, reply}) {
 
 async function main() {
   const postNewBlocksSince = new Date(toolState.postNewBlocksSince);
+  const postNewBlocksTill = toolState.postNewBlocksTill ? new Date(toolState.postNewBlocksTill) : new Date();
   const allBlocks = {}; // Map<String: block_id, Block>
   const allChannelNames = new Set()
   const blockChannelsMap = {}; // Map<String: block_id, Set>
@@ -67,7 +68,7 @@ async function main() {
         if (!ARENA_CHANNELS.includes(channel.title)) return
         channel.contents?.map(block => {
           let block_date = new Date(block.created_at)
-          if (block_date > postNewBlocksSince) {
+          if (block_date > postNewBlocksSince && block_date <= postNewBlocksTill) {
             allBlocks[block.id] = block
             if (block.id in blockChannelsMap) {
               blockChannelsMap[block.id].add(channel.title)
