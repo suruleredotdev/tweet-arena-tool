@@ -39,7 +39,7 @@ const ARENA_CHANNELS = [
   'Startup'
 ];
 
-async function tweet({text, reply}) {
+async function tweet({text, reply, media}) {
   const dryRun = toolState.dryRunTweet;
   if (dryRun) {
     console.log("TWEET", {text, reply, media});
@@ -56,42 +56,58 @@ async function tweet({text, reply}) {
 async function main() {
   const postNewBlocksSince = new Date(toolState.postNewBlocksSince);
   const postNewBlocksTill = toolState.postNewBlocksTill ? new Date(toolState.postNewBlocksTill) : new Date();
-  const allBlocks = {}; // Map<String: block_id, Block>
+  const blocksToPost = {}; // Map<String: block_id, Block>
   const allChannelNames = new Set()
-  const blockChannelsMap = {}; // Map<String: block_id, Set>
+  const blockChannelsMap = {}; // Map<String: block_id, Set<String>>
 
-  await arenaClient
+  const channels = await arenaClient
     .user(ARENA_USER.id)
     .channels()
-    .then(channels => {
-      channels?.map(channel => {
-        if (!ARENA_CHANNELS.includes(channel.title)) return
-        channel.contents?.map(block => {
-          let block_date = new Date(block.created_at)
-          if (block_date > postNewBlocksSince && block_date <= postNewBlocksTill) {
-            allBlocks[block.id] = block
-            if (block.id in blockChannelsMap) {
-              blockChannelsMap[block.id].add(channel.title)
-            } else {
-              blockChannelsMap[block.id] = new Set([channel.title])
-            }
-            allChannelNames.add(channel.title)
+  console.log('ARENA channels resp', channels?.map(c => c.title), channels?.length)
+  try {
+    console.log('ARENA channels resp 0', channels[0])
+    console.log('> channels loop start')
+    for (var i = 0; i < channels.length; i++) {
+      console.log(`>> channels iter ${i}`)
+      const channel = channels[i]
+      if (!ARENA_CHANNELS.includes(channel.title)) continue
+      if (!channel.contents) {
+        if (LOG_LEVEL === "DEBUG") console.log(`Skipping channel idx ${i} due to empty contents`)
+        continue
+      }
+      console.log('>> blocks loop start')
+      for (var j = 0; j < channel.contents?.length; j++) {
+        console.log(`>>> blocks iter ${j} start`)
+        const block = channel.contents[j]
+        let block_date = new Date(block.created_at)
+        console.log(`>>> considering block to post,in date range  postNewBlocksSince:${postNewBlocksSince.toDateString()} < ${block_date} <= postNewBlocksTill:${postNewBlocksTill.toDateString()}`)
+        if (block_date > postNewBlocksSince && block_date <= postNewBlocksTill) {
+          console.log(`>>>> adding block to post, since in date range`)
+          blocksToPost[block.id] = block
+          if (block.id in blockChannelsMap) {
+            blockChannelsMap[block.id].add(channel.title)
+          } else {
+            blockChannelsMap[block.id] = new Set([channel.title])
           }
-        })
-        if (LOG_LEVEL === "DEBUG") console.log({
-          name: channel.title,
-          blocks_preview: channel.contents?.slice(0, 5).map(block => block.title),
-        })
-      });
-    })
-    .catch(err => console.log(err));
+          allChannelNames.add(channel.title)
+        }
+      }
+      console.log('>>>>>> blocks loop finish')
+      if (LOG_LEVEL === "DEBUG") console.log({
+        name: channel.title,
+        blocks_preview: channel.contents?.slice(0, 5).map(block => block.title),
+      })
+    }
+  } catch (err) {
+    console.log("ARENA ERR", err)
+  }
 
-  // console.log('ARENA', allBlocks, blockChannelsMap);
+  console.log("ARENA", blocksToPost);
+  if (LOG_LEVEL === "DEBUG") console.log("ARENA", blocksToPost, blockChannelsMap);
 
-
-  const allBlocksList = Object.values(allBlocks)
+  const blocksToPostList = Object.values(blocksToPost)
   const threadHeaderContent = `
-Research Update 🧵 ${new Date().toDateString()}: ${allBlocksList?.length || 'a # of '} recently collected links by category
+Research Update 🧵 ${new Date().toDateString()}: ${blocksToPostList?.length || 'a # of '} recently collected links by category
 
 Categories include ${Array.from(allChannelNames).join(', ')}
 `.trim()
@@ -110,7 +126,7 @@ https://are.na/block/${block.id}
     return;
   }
   let replyToId = data?.id
-  for (const block of allBlocksList) {
+  for (const block of blocksToPostList) {
     const {data, errors} = await tweet({
       text: fmtBlockAsTweet(block),
       reply: replyToId

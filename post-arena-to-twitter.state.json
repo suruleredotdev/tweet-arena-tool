@@ -1,5 +1,7 @@
 {
-  "postNewBlocksSince": "6/20/2023",
-  "postNewBlocksTill": "7/1/2023",
-  "dryRunTweet": false
+  "LAST__postNewBlocksSince": "6/20/2023",
+  "postNewBlocksSince": "6/1/2023",
+  "postNewBlocksTill": "6/10/2023",
+  "LAST__postNewBlocksTill": "7/1/2023",
+  "dryRunTweet": true
 }
