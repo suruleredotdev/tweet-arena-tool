@@ -79,9 +79,9 @@ async function main() {
       for (var j = 0; j < channel.contents?.length; j++) {
         console.log(`>>> blocks iter ${j} start`)
         const block = channel.contents[j]
-        let block_date = new Date(block.created_at)
-        console.log(`>>> considering block to post,in date range  postNewBlocksSince:${postNewBlocksSince.toDateString()} < ${block_date} <= postNewBlocksTill:${postNewBlocksTill.toDateString()}`)
-        if (block_date > postNewBlocksSince && block_date <= postNewBlocksTill) {
+        let block_connected_date = new Date(block.connected_at)
+        console.log(`>>> considering block to post, in date range SINCE:${postNewBlocksSince.toDateString()} < ${block_connected_date} <= TILL:${postNewBlocksTill.toDateString()}`)
+        if (block_connected_date > postNewBlocksSince && block_connected_date <= postNewBlocksTill) {
           console.log(`>>>> adding block to post, since in date range`)
           blocksToPost[block.id] = block
           if (block.id in blockChannelsMap) {
@@ -92,20 +92,26 @@ async function main() {
           allChannelNames.add(channel.title)
         }
       }
-      console.log('>>>>>> blocks loop finish')
+      console.log('>> blocks loop finish')
       if (LOG_LEVEL === "DEBUG") console.log({
         name: channel.title,
         blocks_preview: channel.contents?.slice(0, 5).map(block => block.title),
       })
     }
   } catch (err) {
-    console.log("ARENA ERR", err)
+    console.error("ARENA ERR", err)
+    return
   }
 
   console.log("ARENA", blocksToPost);
   if (LOG_LEVEL === "DEBUG") console.log("ARENA", blocksToPost, blockChannelsMap);
 
   const blocksToPostList = Object.values(blocksToPost)
+  if (blocksToPostList.length === 0) {
+    console.info("No blocks to post this time :/")
+    return
+  }
+
   const threadHeaderContent = `
 Research Update 🧵 ${new Date().toDateString()}: ${blocksToPostList?.length || 'a # of '} recently collected links by category
 
