@@ -1,7 +1,10 @@
-const TwitterApi = require('twitter-api-v2').TwitterApi;
-const Arena = require("are.na");
+import TwitterApi from 'twitter-api-v2'
+import Arena from "are.na"
 
-const toolState = require("./post-arena-to-twitter.state.json")
+import sqlite3 from 'sqlite3'
+import sqlite, { open } from 'sqlite'
+
+import toolState from "./post-arena-to-twitter.state.json"
 
 const LOG_LEVEL = process.env.LOG_LEVEL || "ERROR";
 
@@ -27,6 +30,7 @@ const ARENA_CHANNELS = [
   'African Empires+States',
   'Oral Tradition',
   'Nigeria History',
+  'Nigeria Politics',
   'Hausa Language+Religion',
   'Music Production',
   // 'sociology, economics',
@@ -39,7 +43,39 @@ const ARENA_CHANNELS = [
   'Startup'
 ];
 
-async function tweet({text, reply, media}) {
+// you would have to import / invoke this in another file
+export async function openDb () {
+  return open({
+    filename: './post-arena-to-twitter.store.sqlite3',
+    driver: sqlite3.Database
+  })
+}
+
+async function saveArenaBlock(db: sqlite.Database, block_id: number, block_source_url: string) {
+  if (toolState.dryRunTweet) return;
+  return await db.run(`UPDATE "ArenaBlock" SET block_id = :block_id, block_source_url = :block_source_url ON CONFLICT (block_source_url) UPDATE (block_id)`, {
+    ':block_id': block_id.toString(),
+    ':block_source_url': block_source_url
+  }) 
+}
+
+async function saveTweetInThread(db: sqlite.Database, tweet_id: string, thread_id: string) {
+  if (toolState.dryRunTweet) return;
+  return await db.run(`INSERT INTO "TweetInThread" (tweet_id, thread_id) VALUES (:tweet_id, :thread_id) ON CONFLICT (tweet_id) UPDATE (thread_id)`, {
+    ':tweet_id': tweet_id,
+    ':thread_id': thread_id,
+  }) 
+}
+
+async function linkArenaBlockToTweet(db: sqlite.Database, block_id: number, tweet_id: string) {
+  if (toolState.dryRunTweet) return;
+  return await db.run(`INSERT INTO "BlockToTweet" (block_id, tweet_id) VALUES (:block_id, :tweet_id)`, {
+    ':block_id': block_id.toString(),
+    ':tweet_id': tweet_id,
+  }) 
+}
+
+async function tweet({text, reply, media}: {text: string, reply?: string, media?: any}) {
   const dryRun = toolState.dryRunTweet;
   if (dryRun) {
     console.log("TWEET", {text, reply, media});
@@ -54,9 +90,11 @@ async function tweet({text, reply, media}) {
 }
 
 async function main() {
+  const dryRun = toolState.dryRunTweet;
+
   const postNewBlocksSince = new Date(toolState.postNewBlocksSince);
-  const postNewBlocksTill = toolState.postNewBlocksTill ? new Date(toolState.postNewBlocksTill) : new Date();
-  const blocksToPost = {}; // Map<String: block_id, Block>
+  const postNewBlocksTill = toolState["postNewBlocksTill "]? new Date(toolState["postNewBlocksTill"]) : new Date();
+  const blocksToPost: Record<string, Arena.Block> = {}; // Map<String: block_id, Block>
   const allChannelNames = new Set()
   const blockChannelsMap = {}; // Map<String: block_id, Set<String>>
 
@@ -64,6 +102,8 @@ async function main() {
     .user(ARENA_USER.id)
     .channels()
   console.log('ARENA channels resp', channels?.map(c => c.title), channels?.length)
+
+  const db = await openDb();
   try {
     console.log('ARENA channels resp 0', channels[0])
     console.log('> channels loop start')
@@ -77,10 +117,10 @@ async function main() {
       }
       console.log('>> blocks loop start')
       for (var j = 0; j < channel.contents?.length; j++) {
-        console.log(`>>> blocks iter ${j} start`)
+        console.log(`>>> blocks iter ${j} start`, {channel_name: channel.title})
         const block = channel.contents[j]
-        let block_connected_date = new Date(block.connected_at)
-        console.log(`>>> considering block to post, in date range SINCE:${postNewBlocksSince.toDateString()} < ${block_connected_date} <= TILL:${postNewBlocksTill.toDateString()}`)
+        let block_connected_date = new Date(block["connected_at"])
+        console.log(`>>> considering block #${block.id} "${block.title}" to post, in date range SINCE:${postNewBlocksSince.toDateString()} < ${block_connected_date} <= TILL:${postNewBlocksTill.toDateString()}`)
         if (block_connected_date > postNewBlocksSince && block_connected_date <= postNewBlocksTill) {
           console.log(`>>>> adding block to post, since in date range`)
           blocksToPost[block.id] = block
@@ -132,17 +172,21 @@ https://are.na/block/${block.id}
     return;
   }
   let replyToId = data?.id
-  for (const block of blocksToPostList) {
-    const {data, errors} = await tweet({
-      text: fmtBlockAsTweet(block),
-      reply: replyToId
+  for (const arenaBlock of blocksToPostList) {
+    await saveArenaBlock(db, arenaBlock.id, arenaBlock.source.url)
+    const {data: tweetData, errors} = await tweet({
+      text: fmtBlockAsTweet(arenaBlock),
+      reply: replyToId,
+      media: null
     })
-    console.log({data, errors})
+    console.log({tweetData, errors})
     if (errors?.length) {
       console.error("TWEET ERR", errors);
       return;
     }
-    replyToId = data?.id
+    await saveTweetInThread(db, tweetData?.id, arenaBlock.source.url)
+    await linkArenaBlockToTweet(db, arenaBlock?.id, tweetData?.id)
+    replyToId = tweetData?.id
   }
 
   console.log()
