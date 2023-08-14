@@ -62,7 +62,7 @@ async function tweet({text, reply, media, ...args}) { // : {text: string, reply?
   }
 }
 
-async function args() {
+async function getArgs() {
   const postNewBlocksSince = new Date(toolState.postNewBlocksSince);
   const postNewBlocksTill = toolState["postNewBlocksTill "] ? new Date(toolState["postNewBlocksTill"]) : new Date();
   return {
@@ -71,14 +71,13 @@ async function args() {
   };
 }
 
-async function main() {
-
+async function runMain() {
   const {
     postNewBlocksSince,
     postNewBlocksTill
-  } = args();
+  } = getArgs();
 
-  const blocksToPost = {}; //: Record<string, Arena.Block>
+  const blocksToTweet = {}; //: Record<string, Arena.Block>
   const allChannelNames = new Set()
   const blockChannelsMap = {}; // Map<String: block_id, Set<String>>
 
@@ -107,7 +106,7 @@ async function main() {
         console.log(`>>> considering block #${block.id} "${block.title}" to post, in date range SINCE:${postNewBlocksSince.toDateString()} < ${block_connected_date} <= TILL:${postNewBlocksTill.toDateString()}`)
         if (block_connected_date > postNewBlocksSince && block_connected_date <= postNewBlocksTill) {
           console.log(`>>>> adding block to post, since in date range`)
-          blocksToPost[block.id] = block
+          blocksToTweet[block.id] = block
           if (block.id in blockChannelsMap) {
             blockChannelsMap[block.id].add(channel.title)
           } else {
@@ -127,17 +126,20 @@ async function main() {
     return
   }
 
-  console.log("ARENA", blocksToPost);
-  if (LOG_LEVEL === "DEBUG") console.log("ARENA", blocksToPost, blockChannelsMap);
+  console.log("ARENA", blocksToTweet);
+  if (LOG_LEVEL === "DEBUG") console.log("ARENA", blocksToTweet, blockChannelsMap);
 
-  const blocksToPostList = Object.values(blocksToPost)
-  if (blocksToPostList.length === 0) {
+  const blocksToTweetList = Object.values(blocksToTweet)
+  if (blocksToTweetList.length === 0) {
     console.info("No blocks to post this time :/")
     return
   }
+  await makeTweetThreadFromBlocks();
+}
 
+async function makeTweetThreadFromBlocks(blocksToTweetList) {
   const threadHeaderContent = `
-Research Update 🧵 ${new Date().toDateString()}: ${blocksToPostList?.length || 'a # of '} recently collected links by category
+Research Update 🧵 ${new Date().toDateString()}: ${blocksToTweetList?.length || 'a # of '} recently collected links by category
 
 Categories include ${Array.from(allChannelNames).join(', ')}
 `.trim()
@@ -156,7 +158,7 @@ https://are.na/block/${block.id}
     return;
   }
   let replyToId = data?.id
-  for (const arenaBlock of blocksToPostList) {
+  for (const arenaBlock of blocksToTweetList) {
     /*
     await saveArenaBlock(db, arenaBlock.id, arenaBlock.source.url)
     */
@@ -178,7 +180,6 @@ https://are.na/block/${block.id}
     */
     replyToId = tweetData?.id
   }
-
-  console.log()
 }
-main()
+
+runMain()
