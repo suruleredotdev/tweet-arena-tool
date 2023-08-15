@@ -27,19 +27,22 @@ const ARENA_USER = {
 };
 const arenaClient = new Arena({ accessToken: ARENA_USER.token });
 const ARENA_CHANNELS = [
-  "Historiography",
   // 'SURULERE RESEARCH',
   "~~stream~~",
-  "Yoruba History+Language+Religion",
+  "Stream",
   "Permaculture",
+
+  "Historiography",
   "African Empires+States",
+  "Yoruba History+Language+Religion",
+  "Hausa History+Language+Religion",
+  "Igbo History+Language+Religion",
   "Oral Tradition",
   "Nigeria History",
   "Nigeria Politics",
-  "Hausa Language+Religion",
+
   "Music Production",
   // 'sociology, economics',
-  "Igbo Language+Religion",
   // 'screenshots',
   // 'map software',
   "Nigeria Politics",
@@ -51,7 +54,13 @@ const ARENA_CHANNELS = [
 async function tweet({ text, reply, media, ...args }) {
   // : {text: string, reply?: string, media?: any}) {
   if (DRY_RUN) {
-    console.log("TWEET", { text, reply, media });
+    console.log("TWEET*", {
+      text,
+      reply,
+      media,
+      textLen: text.length,
+      textOver280: text?.length > 280,
+    });
     return { data: { id: "TEST-REPLY-ID", ...args }, errors: [] };
   } else {
     if (reply) {
@@ -62,11 +71,11 @@ async function tweet({ text, reply, media, ...args }) {
   }
 }
 
-async function getArgs() {
+function getArgs() {
   let cliArgs = {},
     acc = [];
   for (const curr of process.argv) {
-    if (acc.length === 0) return;
+    if (acc.length === 0) continue;
     const argKey = acc[acc.length - 1];
     switch (argKey) {
       case "blockIds":
@@ -88,13 +97,28 @@ async function getArgs() {
   return {
     postNewBlocksSince,
     postNewBlocksTill,
-    blockIds,
+    blockIds: new Array(cliArgs["blockIds"]),
   };
 }
 
-async function getBlocksToPost() {}
+async function getBlocksToPost() {
+  return [];
+}
 
-async function tweetThreadFromBlocks(blocksToTweetList) {
+function fmtBlockAsTweet(block) {
+  const MAX_TITLE_LEN = 75;
+  const MAX_DESC_LEN = 140 - (block.source?.url?.length || 0);
+
+  return `${block.title?.slice(0, MAX_TITLE_LEN) + ":\n" || ""}${
+    block.description?.slice(0, MAX_DESC_LEN) || ""
+  }${block.description?.length > MAX_DESC_LEN ? "..." : ""}
+
+Context: https://are.na/block/${block.id}
+Source: ${block.source?.url}
+`.trim();
+}
+
+async function tweetThreadFromBlocks(blocksToTweetList, allChannelNames) {
   const threadHeaderContent = `
 Research Update 🧵 ${new Date().toDateString()}: ${
     blocksToTweetList?.length || "a # of "
@@ -103,11 +127,6 @@ Research Update 🧵 ${new Date().toDateString()}: ${
 Categories include ${Array.from(allChannelNames).join(", ")}
 `.trim();
 
-  const fmtBlockAsTweet = (block) =>
-    `
-     ${block.title}
-https://are.na/block/${block.id}
-`.trim();
   const { data, errors } = await tweet({
     text: threadHeaderContent,
   });
@@ -128,7 +147,7 @@ https://are.na/block/${block.id}
       connected_at: arenaBlock.connected_at,
       // source_url: arenaBlock.,
     });
-    console.log({ tweetData, errors });
+    if (LOG_LEVEL === "DEBUG") console.log({ tweetData, errors });
     if (errors?.length) {
       console.error("TWEET ERR", errors);
       return;
@@ -142,7 +161,9 @@ https://are.na/block/${block.id}
 }
 
 async function runMain() {
-  const { postNewBlocksSince, postNewBlocksTill } = getArgs();
+  const args = getArgs();
+  console.log("ARGS", args);
+  const { postNewBlocksSince, postNewBlocksTill } = args;
 
   const blocksToTweet = {}; //: Record<string, Arena.Block>
   const allChannelNames = new Set();
@@ -217,7 +238,7 @@ async function runMain() {
     console.info("No blocks to post this time :/");
     return;
   }
-  await tweetThreadFromBlocks();
+  await tweetThreadFromBlocks(blocksToTweetList, allChannelNames);
 }
 
 runMain();
