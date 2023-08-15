@@ -94,7 +94,7 @@ async function getArgs() {
 
 async function getBlocksToPost() {}
 
-async function makeTweetThreadFromBlocks(blocksToTweetList) {
+async function tweetThreadFromBlocks(blocksToTweetList) {
   const threadHeaderContent = `
 Research Update 🧵 ${new Date().toDateString()}: ${
     blocksToTweetList?.length || "a # of "
@@ -217,7 +217,7 @@ async function runMain() {
     console.info("No blocks to post this time :/");
     return;
   }
-  await makeTweetThreadFromBlocks();
+  await tweetThreadFromBlocks();
 }
 
 runMain();
