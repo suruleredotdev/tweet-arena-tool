@@ -29,7 +29,7 @@ CLI-only for now, deployable JSON API later!
   - Edit the `state.json` config to desired behaviour
   ```json
   {
-    "// not used, for reference": "",
+    "// dont actually tweet, just preview": "",
     "dryRunTweet": false,
 
     "// start posting Are.na blocks": "",
