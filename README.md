@@ -1,6 +1,6 @@
 # tweet-arena-tool
 
-tool to send periodic Are.na link digests to Twitter as threads
+tool to send periodic Are.na block/link to Twitter as threads
 
 CLI-only for now, deployable JSON API later!
 
@@ -32,8 +32,11 @@ CLI-only for now, deployable JSON API later!
     "// dont actually tweet, just preview": "",
     "dryRunTweet": false,
 
-    "// start posting Are.na blocks": "",
+    "// start posting blocks from": "",
     "postNewBlocksSince": "8/13/2023 10:42:00",
+
+    "// stop posting Are.na blocks (optional)": "",
+    "postNewBlocksTill": "8/15/2023 23:59:59",
 
     "// not used, for reference": "",
     "lastRunTime": "7/30/2023 20:42:00",
