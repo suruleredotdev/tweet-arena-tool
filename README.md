@@ -2,7 +2,7 @@
 
 tool to send periodic Are.na block/link to Twitter as threads
 
-CLI-only for now, deployable JSON API later!
+CLI-only for now, later: deployable JSON API and Web UI!
 
 ## Usage
 
@@ -24,7 +24,7 @@ CLI-only for now, deployable JSON API later!
   npm install
   ```
 
-- Running the tool
+- Running the CLI tool
 
   - Edit the `state.json` config to desired behaviour
   ```json
