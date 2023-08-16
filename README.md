@@ -6,7 +6,7 @@ CLI-only for now, later: deployable JSON API and Web UI!
 
 ## Usage
 
-- Pre-requirements
+- Pre-requirements: run these commands in your terminal app
   ```sh
   # NOTE: these commands assume macOS, look for equivalent in ur OS
 
