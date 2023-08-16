@@ -53,7 +53,7 @@ CLI-only for now, later: deployable JSON API and Web UI!
       "ARENA_PERSONAL_ACCESS_TOKEN=xxx" \
       "# instructions for retrieving:" \
       "# - https://developer.twitter.com/en/docs/tutorials/authenticating-with-twitter-api-for-enterprise/authentication-method-overview#oauth1.0a" \
-      "# - https://dev.are.na/documentation/authentication: \ > .env
+      "# - https://dev.are.na/documentation/authentication:" > .env
 
       # ensure vars are exported
       export $(xargs <.env)
