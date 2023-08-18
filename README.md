@@ -1,6 +1,6 @@
 # tweet-arena-tool
 
-tool to send periodic Are.na block/link to Twitter as threads
+Tool to send periodic Are.na block/link to Twitter as threads
 
 CLI-only for now, later: deployable JSON API and Web UI!
 
@@ -27,22 +27,22 @@ CLI-only for now, later: deployable JSON API and Web UI!
 - Running the CLI tool
 
   - Edit the `state.json` config to desired behaviour
-  ```json
-  {
-    "// dont actually tweet, just preview": "",
-    "dryRunTweet": false,
+      ```json
+      {
+        "// dont actually tweet, just preview": "",
+        "dryRunTweet": false,
 
-    "// start posting blocks from": "",
-    "postNewBlocksSince": "8/13/2023 10:42:00",
+        "// start posting blocks from": "",
+        "postNewBlocksSince": "8/13/2023 10:42:00",
 
-    "// stop posting Are.na blocks (optional)": "",
-    "postNewBlocksTill": "8/15/2023 23:59:59",
+        "// stop posting Are.na blocks (optional)": "",
+        "postNewBlocksTill": "8/15/2023 23:59:59",
 
-    "// not used, for reference": "",
-    "lastRunTime": "7/30/2023 20:42:00",
-    "lastLastRunTime": "7/23/2023 21:22:00"
-  } 
-  ```
+        "// not used, for reference": "",
+        "lastRunTime": "7/30/2023 20:42:00",
+        "lastLastRunTime": "7/23/2023 21:22:00"
+      } 
+      ```
 
   - Set required env vars, in a `.env` file:
       ```sh
