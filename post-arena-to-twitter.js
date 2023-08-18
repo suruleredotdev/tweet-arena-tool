@@ -25,7 +25,7 @@ const ARENA_USER = {
   id: 60392,
   token: process.env.ARENA_PERSONAL_ACCESS_TOKEN,
 };
-const arenaClient = new Arena({ accessToken: ARENA_USER.token });
+const arenaClient = new Arena({accessToken: ARENA_USER.token});
 const ARENA_CHANNELS = [
   // 'SURULERE RESEARCH',
   "~~stream~~",
@@ -51,7 +51,7 @@ const ARENA_CHANNELS = [
   "Startup",
 ];
 
-async function tweet({ text, reply, media, ...args }) {
+async function tweet({text, reply, media, ...args}) {
   // : {text: string, reply?: string, media?: any}) {
   if (DRY_RUN) {
     console.log("TWEET*", {
@@ -61,7 +61,7 @@ async function tweet({ text, reply, media, ...args }) {
       textLen: text.length,
       textOver280: text?.length > 280,
     });
-    return { data: { id: "TEST-REPLY-ID", ...args }, errors: [] };
+    return {data: {id: "TEST-REPLY-ID", ...args}, errors: []};
   } else {
     if (reply) {
       return await twitterClient.v2.reply(text, reply);
@@ -92,8 +92,8 @@ function getArgs() {
   const postNewBlocksTill = toolState["postNewBlocksTill"]
     ? new Date(toolState["postNewBlocksTill"])
     : toolState["postNewBlocksTill"]
-    ? new Date(toolState["postNewBlocksTill"])
-    : new Date();
+      ? new Date(toolState["postNewBlocksTill"])
+      : new Date();
   return {
     postNewBlocksSince,
     postNewBlocksTill,
@@ -109,9 +109,8 @@ function fmtBlockAsTweet(block) {
   const MAX_TITLE_LEN = 75;
   const MAX_DESC_LEN = 140 - (block.source?.url?.length || 0);
 
-  return `${block.title?.slice(0, MAX_TITLE_LEN) + ":\n" || ""}${
-    block.description?.slice(0, MAX_DESC_LEN) || ""
-  }${block.description?.length > MAX_DESC_LEN ? "..." : ""}
+  return `${block.title?.slice(0, MAX_TITLE_LEN) + ":\n" || ""}${block.description?.slice(0, MAX_DESC_LEN) || ""
+    }${block.description?.length > MAX_DESC_LEN ? "..." : ""}
 
 Context: https://are.na/block/${block.id}
 Source: ${block.source?.url}
@@ -120,17 +119,16 @@ Source: ${block.source?.url}
 
 async function tweetThreadFromBlocks(blocksToTweetList, allChannelNames) {
   const threadHeaderContent = `
-Research Update 🧵 ${new Date().toDateString()}: ${
-    blocksToTweetList?.length || "a # of "
-  } recently collected links by category
+Research Update 🧵 ${new Date().toDateString()}: ${blocksToTweetList?.length || "a # of "
+    } recently collected links by category
 
 Categories include ${Array.from(allChannelNames).join(", ")}
 `.trim();
 
-  const { data, errors } = await tweet({
+  const {data, errors} = await tweet({
     text: threadHeaderContent,
   });
-  console.log({ data, errors });
+  console.log({data, errors});
   if (errors?.length) {
     console.error("TWEET ERR", errors);
     return;
@@ -140,14 +138,14 @@ Categories include ${Array.from(allChannelNames).join(", ")}
     /*
     await saveArenaBlock(db, arenaBlock.id, arenaBlock.source.url)
     */
-    const { data: tweetData, errors } = await tweet({
+    const {data: tweetData, errors} = await tweet({
       text: fmtBlockAsTweet(arenaBlock),
       reply: replyToId,
       media: null,
       connected_at: arenaBlock.connected_at,
       // source_url: arenaBlock.,
     });
-    if (LOG_LEVEL === "DEBUG") console.log({ tweetData, errors });
+    if (LOG_LEVEL === "DEBUG") console.log({tweetData, errors});
     if (errors?.length) {
       console.error("TWEET ERR", errors);
       return;
@@ -163,7 +161,7 @@ Categories include ${Array.from(allChannelNames).join(", ")}
 async function runMain() {
   const args = getArgs();
   console.log("ARGS", args);
-  const { postNewBlocksSince, postNewBlocksTill } = args;
+  const {postNewBlocksSince, postNewBlocksTill} = args;
 
   const blocksToTweet = {}; //: Record<string, Arena.Block>
   const allChannelNames = new Set();
@@ -197,8 +195,7 @@ async function runMain() {
         const block = channel.contents[j];
         let block_connected_date = new Date(block["connected_at"]);
         console.log(
-          `>>> considering block #${block.id} "${
-            block.title
+          `>>> considering block #${block.id} "${block.title
           }" to post, in date range SINCE:${postNewBlocksSince?.toDateString()} < ${block_connected_date} <= TILL:${postNewBlocksTill?.toDateString()}`
         );
         if (
@@ -239,6 +236,8 @@ async function runMain() {
     return;
   }
   await tweetThreadFromBlocks(blocksToTweetList, allChannelNames);
+
+  console.log("new lastRunTime: ", new Date().valueOf())
 }
 
 runMain();
