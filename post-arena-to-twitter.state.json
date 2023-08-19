@@ -1,6 +1,7 @@
 {
-  "postNewBlocksSince": "8/15/2023 11:28:00",
-  "lastRunTime": "8/13/2023 10:42:00",
-  "lastLastRunTime": "7/30/2023 20:42:00",
-  "dryRunTweet": true
+  "postNewBlocksSince": "8/17/2023 15:09:00",
+  "lastRunTime": "8/16/2023 10:28:00",
+  "lastLastRunTime": "8/15/2023 11:28:00",
+  "lastLastLastRunTime": "8/13/2023 10:42:00",
+  "dryRunTweet": false
 }

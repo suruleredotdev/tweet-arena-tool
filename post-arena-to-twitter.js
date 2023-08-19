@@ -128,7 +128,7 @@ Categories include ${Array.from(allChannelNames).join(", ")}
   const {data, errors} = await tweet({
     text: threadHeaderContent,
   });
-  console.log({data, errors});
+  console.log({data, errors, tweetLink: `https://twitter.com/suruleredotdev/status/${data?.id}`});
   if (errors?.length) {
     console.error("TWEET ERR", errors);
     return;
@@ -237,7 +237,7 @@ async function runMain() {
   }
   await tweetThreadFromBlocks(blocksToTweetList, allChannelNames);
 
-  console.log("new lastRunTime: ", new Date().valueOf())
+  console.log("new lastRunTime: ", new Date().toISOString())
 }
 
 runMain();
