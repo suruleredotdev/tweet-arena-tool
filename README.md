@@ -72,4 +72,4 @@ CLI-only for now, later: deployable JSON API and Web UI!
       node post-arena-to-twitter.js
       ```
 
-  - [ ] TODO: Run the server for JSON/REST API
+- [ ] TODO: Run the server for JSON/REST API
