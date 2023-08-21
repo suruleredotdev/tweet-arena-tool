@@ -46,14 +46,14 @@ CLI-only for now, later: deployable JSON API and Web UI!
 
   - Set required env vars, in a `.env` file:
       ```sh
-      echo "TWITTER_API_KEY=xxx" \
-      "TWITTER_API_SECRET=xxx" \
-      "TWITTER_ACCESS_TOKEN=xxx" \
-      "TWITTER_ACCESS_SECRET=xxx" \
-      "ARENA_PERSONAL_ACCESS_TOKEN=xxx" \
-      "# instructions for retrieving:" \
-      "# - https://developer.twitter.com/en/docs/tutorials/authenticating-with-twitter-api-for-enterprise/authentication-method-overview#oauth1.0a" \
-      "# - https://dev.are.na/documentation/authentication:" > .env
+      echo "TWITTER_API_KEY=xxx\n" \
+      "TWITTER_API_SECRET=xxx\n" \
+      "TWITTER_ACCESS_TOKEN=xxx\n" \
+      "TWITTER_ACCESS_SECRET=xxx\n" \
+      "ARENA_PERSONAL_ACCESS_TOKEN=xxx\n" \
+      "# instructions for retrieving:\n" \
+      "# - https://developer.twitter.com/en/docs/tutorials/authenticating-with-twitter-api-for-enterprise/authentication-method-overview#oauth1.0a\n" \
+      "# - https://dev.are.na/documentation/authentication:\n" > .env
 
       # ensure vars are exported
       export $(xargs <.env)
