@@ -14,4 +14,11 @@ module.exports = {
       { test: /\.(png|jpe?g|gif)$/i, loader: "file-loader" },
     ],
   },
+  devServer: {
+    static: {
+      directory: __dirname,
+    },
+    compress: true,
+    port: 8080,
+  },
 };

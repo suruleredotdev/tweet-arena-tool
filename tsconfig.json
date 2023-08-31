@@ -1,14 +1,29 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "es2022",
     "noImplicitAny": true,
     "removeComments": true,
     "preserveConstEnums": true,
     "sourceMap": true,
-    "types": ["react", "react-dom"],
-    "jsx": "react-jsx"
+    "types": ["react", "react-dom", "node"],
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "target": "es5",
+    "lib": ["ES2017", "DOM"],
+    "outDir": "dist"
+  },
+  "ts-node": {
+    "transpileOnly": false,
+
+    "files": true,
+
+    "compilerOptions": {
+    }
   },
   "files": [
-    "index.tsx",
+    "index.tsx"
   ]
 }
