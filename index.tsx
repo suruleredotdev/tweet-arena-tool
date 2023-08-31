@@ -1,4 +1,5 @@
 import * as React from 'react';
+import ReactDOM from 'react-dom';
 import { Routes, Route } from 'react-router-dom';
 
 type Content = {
@@ -82,4 +83,10 @@ const App = () => (
   </Routes>
 );
 
-render(<App />, document.querySelector('#app'));
+const root = ReactDOM.createRoot(document.getElementById('app'));
+
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
