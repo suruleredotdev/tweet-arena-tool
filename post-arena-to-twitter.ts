@@ -84,6 +84,7 @@ function getArgs(): Args {
   };
 }
 
+// TODO:
 // const LOG_LEVELS = ["INFO", "DEBUG", "ERROR"];
 //
 // function log(level, ...args) {
@@ -131,7 +132,7 @@ Categories include ${Array.from(allChannelNames).join(", ")}
   }
   let replyToId = data?.id;
   for (const arenaBlock of blocksToTweetList) {
-    /*
+    /* TODO:
     await saveArenaBlock(db, arenaBlock.id, arenaBlock.source.url)
     */
     const { data: tweetData, errors } = await tweet({
@@ -146,7 +147,7 @@ Categories include ${Array.from(allChannelNames).join(", ")}
       console.error("TWEET ERR", errors);
       return;
     }
-    /*
+    /* TODO:
     await saveTweetInThread(db, tweetData?.id, arenaBlock.source.url)
     await linkArenaBlockToTweet(db, arenaBlock?.id, tweetData?.id)
     */
