@@ -17,12 +17,9 @@
   },
   "ts-node": {
     "transpileOnly": false,
-
-    "files": true,
-
-    "compilerOptions": {
-    }
+    "files": true
   },
+  
   "files": [
     "index.tsx"
   ]

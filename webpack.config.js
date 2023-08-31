@@ -1,3 +1,5 @@
+const path = require('path');
+
 module.exports = {
   mode: "production",
   devtool: "source-map",
@@ -16,7 +18,8 @@ module.exports = {
   },
   devServer: {
     static: {
-      directory: __dirname,
+      publicPath: "/dist/",
+      directory: path.join(__dirname, './'),
     },
     compress: true,
     port: 8080,
