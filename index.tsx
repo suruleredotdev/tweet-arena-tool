@@ -1,6 +1,7 @@
-import * as React from 'react';
-import ReactDOM from 'react-dom';
-import { Routes, Route } from 'react-router-dom';
+import Arena from "are.na";
+import { useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { getBlocksToPost, arenaClient, ARENA_USER } from "./lib";
 
 type Content = {
   profileImageUrl: string,
@@ -12,6 +13,7 @@ type Content = {
     profileName: string,
     text: string,
   },
+  postDate: Date,
 }
 
 const MOCK_CONTENT: Content  = {
@@ -23,7 +25,8 @@ const MOCK_CONTENT: Content  = {
   commentPreview: {
     profileName: "",
     text: "",
-  }
+  },
+  postDate: new Date()
 }
 
 const ContentBlock = ({
@@ -32,7 +35,8 @@ const ContentBlock = ({
   profileName,
   bodyText,
   commentCount,
-  commentPreview
+  commentPreview,
+  postDate
 }:Content) => (
   <div className=" rounded overflow-hidden border w-full lg:w-6/12 md:w-6/12 bg-white mx-3 md:mx-0 lg:mx-0">
     <div className="w-full flex justify-between p-3">
@@ -40,7 +44,7 @@ const ContentBlock = ({
         <div className="rounded-full h-8 w-8 bg-gray-500 flex items-center justify-center overflow-hidden">
           <img src={profileImageUrl} alt="profilepic"/>
         </div>
-        <span className="pt-1 ml-2 font-bold text-sm">braydoncoyer</span>
+        <span className="pt-1 ml-2 font-bold text-sm">{profileName}</span>
       </div>
       <span className="px-2 hover:bg-gray-300 cursor-pointer rounded">
         <i className="fas fa-ellipsis-h pt-2 text-lg"></i>
@@ -54,7 +58,7 @@ const ContentBlock = ({
     <div className="px-3 pb-2">
       <div className="pt-2">
         <i className="far fa-heart cursor-pointer"></i>
-        <span className="text-sm text-gray-400 font-medium">12 likes</span>
+        <span className="text-sm text-gray-400 font-medium">{postDate.toLocaleString()}</span>
       </div>
       <div className="pt-1">
         <div className="mb-2 text-sm">
@@ -71,22 +75,48 @@ const ContentBlock = ({
   </div>
 );
 
-const HomePage = () => (
-  <div>
+const HomePage = () => {
+  const [channels, setChannels] = useState(null);
+  const [blocks, setBlocks] = useState(null);
+
+  // useEffect(() => {
+  //   // React advises to declare the async function directly inside useEffect
+  //   async function getChannelsAndBlocks() {
+  //     const channels = await arenaClient.user(ARENA_USER.id).channels();
+  //     console.log(
+  //       "ARENA channels resp",
+  //       channels?.map((c: Arena.Channel) => c.title),
+  //       channels?.length
+  //     );
+  //     setChannels(channels);
+  //     const { blocksToTweet } = await getBlocksToPost(
+  //       channels, new Date("2023/08/01"), new Date("2023/08/31")
+  //     );
+  //     setBlocks(blocksToTweet)
+  //   };
+
+  //   console.log("EFFECT")
+  //   // You need to restrict it at some point
+  //   if (!channels || !blocks) {
+  //     console.log("GETTING CHANNELS & BLOCKS")
+  //     getChannelsAndBlocks();
+  //   }
+  // }, []);
+  console.log({ blocks, channels });
+  return (<div>
     <ContentBlock {...MOCK_CONTENT} />
-  </div>
-);
+    {`STATE:
+      ${{ blocks, channels}}
+    `}
+  </div>);
+}
 
 const App = () => (
-  <Routes>
-    <Route path="/" children={<HomePage />} />
-  </Routes>
+  <HomePage />
 );
 
-const root = ReactDOM.createRoot(document.getElementById('app'));
+const root = createRoot(document.getElementById('app'));
 
 root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+  <App />
 );
