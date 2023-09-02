@@ -19,8 +19,6 @@
     "transpileOnly": false,
     "files": true
   },
-  
-  "files": [
-    "index.tsx"
-  ]
+
+  "files": ["index.tsx"]
 }

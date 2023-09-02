@@ -1,4 +1,5 @@
-const path = require('path');
+const path = require("path");
+const Dotenv = require("dotenv-webpack");
 
 module.exports = {
   mode: "production",
@@ -6,6 +7,8 @@ module.exports = {
   entry: "./index.tsx",
   output: {
     filename: "app.js",
+    path: path.resolve(__dirname, "dist"),
+    publicPath: "/dist/",
   },
   resolve: {
     extensions: [".ts", ".tsx", ".js"],
@@ -18,10 +21,10 @@ module.exports = {
   },
   devServer: {
     static: {
-      publicPath: "/dist/",
-      directory: path.join(__dirname, './'),
+      directory: path.join(__dirname, "/"),
     },
     compress: true,
     port: 8080,
   },
+  plugins: [new Dotenv()],
 };
