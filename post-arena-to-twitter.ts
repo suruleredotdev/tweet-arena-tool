@@ -84,15 +84,6 @@ function getArgs(): Args {
   };
 }
 
-// TODO:
-// const LOG_LEVELS = ["INFO", "DEBUG", "ERROR"];
-//
-// function log(level, ...args) {
-//   if (LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(level)) {
-//     console[level || "log"](...args);
-//   }
-// }
-
 function fmtBlockAsTweet(block: Arena.Block) {
   const MAX_TITLE_LEN = 75;
   const MAX_DESC_LEN = 140 - (block.source?.url?.length || 0);

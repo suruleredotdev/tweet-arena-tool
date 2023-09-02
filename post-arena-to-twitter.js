@@ -13,6 +13,8 @@ const toolConfig = require("./tool-config.json");
 const LOG_LEVEL = process.env.LOG_LEVEL || "ERROR";
 const DRY_RUN = Boolean(process.env.LOG_LEVEL) || toolConfig.dryRunTweet;
 
+process.env.TZ = "America/Los_Angeles";
+
 const twitterClient = new TwitterApi({
   appKey: process.env.TWITTER_API_KEY,
   appSecret: process.env.TWITTER_API_SECRET,
@@ -89,15 +91,16 @@ function getArgs() {
   if (!postNewBlocksSince) {
     console.error("missing toolConfig.postNewBlocksSince", toolConfig);
   }
-  const postNewBlocksTill = toolConfig["postNewBlocksTill"]
-    ? new Date(toolConfig["postNewBlocksTill"])
-    : toolConfig["postNewBlocksTill"]
-    ? new Date(toolConfig["postNewBlocksTill"])
-    : new Date();
+  const postNewBlocksTill =
+    "postNewBlocksTill" in toolConfig
+      ? new Date(toolConfig["postNewBlocksTill"])
+      : "postNewBlocksTill" in cliArgs
+      ? new Date(cliArgs.postNewBlocksTill)
+      : new Date();
   return {
     postNewBlocksSince,
     postNewBlocksTill,
-    blockIds: new Array(cliArgs["blockIds"]),
+    blockIds: new Array(cliArgs.blockIds),
   };
 }
 
@@ -208,7 +211,7 @@ async function runMain() {
         console.log(
           `>>> considering block #${block.id} "${
             block.title
-          }" to post, in date range SINCE:${postNewBlocksSince?.toDateString()} < ${block_connected_date} <= TILL:${postNewBlocksTill?.toDateString()}`
+          }" to post, in date range SINCE:${postNewBlocksSince?.toLocaleString()} < ${block_connected_date} <= TILL:${postNewBlocksTill?.toLocaleString()}`
         );
         if (
           block_connected_date > postNewBlocksSince &&
