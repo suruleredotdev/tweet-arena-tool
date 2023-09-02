@@ -2,6 +2,15 @@ import Arena from "are.na";
 
 export const LOG_LEVEL = process.env.LOG_LEVEL || "ERROR";
 
+// TODO:
+// const LOG_LEVELS = ["INFO", "DEBUG", "ERROR"];
+//
+// function log(level, ...args) {
+//   if (LOG_LEVELS.indexOf(level) >= LOG_LEVELS.indexOf(level)) {
+//     console[level || "log"](...args);
+//   }
+// }
+
 export const ARENA_USER = {
   slug: "korede-aderele",
   id: 60392,
@@ -37,8 +46,8 @@ export const ARENA_CHANNELS = [
 
 export async function getBlocksToPost(
   channels: Array<Arena.Channel>,
-  postNewBlocksTill: Date,
-  postNewBlocksSince: Date
+  postNewBlocksSince: Date,
+  postNewBlocksTill: Date
 ): Promise<{
   blocksToTweet: Record<number, Arena.Block>;
   allChannelNames: Set<string>;
@@ -67,8 +76,8 @@ export async function getBlocksToPost(
         const block = channel.contents[j];
         let block_connected_date = new Date(
           Math.min.apply(null, [
-            new Date(block?.connections[0]?.created_at),
-            new Date(block?.connections[0]?.created_at),
+            new Date(block?.connections?.[0]?.created_at || block.created_at),
+            new Date(block?.connections?.[0]?.created_at || block.created_at),
           ])
         );
         console.log(
