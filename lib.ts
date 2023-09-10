@@ -44,6 +44,19 @@ export const ARENA_CHANNELS = [
   "Startup",
 ];
 
+export function fmtBlockAsTweet(block: Arena.Block) {
+  const MAX_TITLE_LEN = 75;
+  const MAX_DESC_LEN = 140 - (block.source?.url?.length || 0);
+
+  return `${block.title?.slice(0, MAX_TITLE_LEN) + ":\n" || ""}${
+    block.description?.slice(0, MAX_DESC_LEN) || ""
+  }${block.description?.length > MAX_DESC_LEN ? "..." : ""}
+
+Context: https://are.na/block/${block.id}
+Source: ${block.source?.url}
+`.trim();
+}
+
 export async function getBlocksToPost(
   channels: Array<Arena.Channel>,
   postNewBlocksSince: Date,

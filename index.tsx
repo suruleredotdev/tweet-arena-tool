@@ -1,8 +1,13 @@
 import Arena from "are.na";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import InfiniteScroll from 'react-infinite-scroller';
-import { getBlocksToPost, arenaClient, ARENA_USER } from "./lib";
+import InfiniteScroll from "react-infinite-scroller";
+import {
+  getBlocksToPost,
+  arenaClient,
+  ARENA_USER,
+  fmtBlockAsTweet,
+} from "./lib";
 
 type Content = {
   profileImageUrl: string;
@@ -16,6 +21,21 @@ type Content = {
   };
   postDate: Date;
 };
+
+export interface RssFeedItem {
+  id: string;
+  url: string;
+  title: string;
+  content_text: string;
+  content_html: string;
+  image: any;
+  date_published: string;
+  authors: Author[];
+}
+
+export interface Author {
+  name: string;
+}
 
 const MOCK_CONTENT: Content = {
   profileImageUrl: "https://avatars0.githubusercontent.com/u/38799309?v=4",
@@ -38,23 +58,53 @@ function arenaToContentBlock(arenaBlock: Arena.Block): Content {
     profileImageUrl: arenaBlock.user.avatar,
     bodyImageUrl: arenaBlock.image.display.url,
     profileName: arenaBlock.user.username,
-    bodyText: (<div>
-      ${`${arenaBlock.title}:\n${arenaBlock.description}`}
-      <br/>
-      <a
-        href={arenaBlock.source.url}
-        style={{ color: 'blue', textDecoration: 'underline' }}>
+    bodyText: (
+      <div>
+        {`${arenaBlock.title}:\n${arenaBlock.description}`}
+        <br />
+        <a
+          href={arenaBlock.source.url}
+          style={{ color: "blue", textDecoration: "underline" }}
+        >
           {arenaBlock.source.url}
-      </a>
-    </div>),
+        </a>
+      </div>
+    ),
     commentCount: arenaBlock.comment_count,
     commentPreview: {
       profileName: "",
-      text: ""
+      text: "",
     },
     postDate: new Date(
       arenaBlock?.connections?.[0]?.updated_at || arenaBlock.created_at
     ),
+  };
+}
+
+function rssToContentBlock(feedItem: RssFeedItem): Content {
+  if (!feedItem) return MOCK_CONTENT;
+  return {
+    profileImageUrl: "", // feedItem.author.avatar,
+    bodyImageUrl: feedItem.image || "",
+    profileName: feedItem.authors[0].name,
+    bodyText: (
+      <div>
+        {`${feedItem.title}:\n${feedItem.content_text}`}
+        <br />
+        <a
+          href={feedItem.url}
+          style={{ color: "blue", textDecoration: "underline" }}
+        >
+          {feedItem.url}
+        </a>
+      </div>
+    ),
+    commentCount: 0,
+    commentPreview: {
+      profileName: "",
+      text: "",
+    },
+    postDate: new Date(feedItem.date_published),
   };
 }
 
@@ -66,8 +116,14 @@ const ContentBlock = ({
   // commentCount,
   // commentPreview,
   postDate,
-}: Content) => (
-  <div className=" rounded overflow-hidden border w-full lg:w-6/12 md:w-6/12 bg-white mx-3 md:mx-0 lg:mx-0">
+  key,
+  onClick,
+}: Content & { key: string; onClick?: (e: any) => void }) => (
+  <div
+    id={key}
+    className=" rounded overflow-hidden border w-full lg:w-3/4 md:w-3/4 bg-white mx-3 md:mx-0 lg:mx-0"
+    onClick={onClick || (() => {})}
+  >
     <div className="w-full flex justify-between p-3">
       <div className="flex">
         <div className="rounded-full h-8 w-8 bg-gray-500 flex items-center justify-center overflow-hidden">
@@ -108,18 +164,27 @@ const ContentBlock = ({
 );
 
 const HomePage = () => {
-  const [channels, setChannels] = useState(null);
-  const [blocks, setBlocks] = useState(null);
+  const [channels, setChannels] = useState([]);
+  const [blocks, setBlocks] = useState<Record<string, Arena.Block>>({});
+  const [tweets, setTweets] = useState<RssFeedItem[]>([]);
+  const [tweetBlocksMap, setTweetBlocksMap] = useState<{
+    blockTitlesToId: Record<string, string | number>;
+    blockIdToTweetId: Record<string, string>;
+  }>({
+    blockTitlesToId: {},
+    blockIdToTweetId: {},
+  });
 
   const DEFAULT = {
     start: new Date("2023/08/01"),
-    end: new Date("2023/08/31")
-  }
+    end: new Date("2023/08/31"),
+  };
   const [start, setStart] = useState(DEFAULT.start);
   const [end, setEnd] = useState(DEFAULT.end);
 
   console.log("ARGS", { start, end });
 
+  // load Are.na content
   useEffect(() => {
     console.log("EFFECT");
     // React advises to declare the async function directly inside useEffect
@@ -135,56 +200,206 @@ const HomePage = () => {
         start,
         end
       );
-      setChannels(allChannelNames);
-      setBlocks(Object.values(blocksToTweet));
+      const blockTitlesToId = Object.fromEntries(
+        Object.values(blocksToTweet)?.map((b: Arena.Block) => [b.title, b.id])
+      );
+      console.log("blockTitles to ID", {
+        blockTitlesToId,
+      });
+      setTweetBlocksMap((contentMap) => {
+        return {
+          ...contentMap,
+          blockTitlesToId: {
+            ...contentMap.blockTitlesToId,
+            ...blockTitlesToId,
+          },
+        };
+      });
+      setChannels(Array.from(allChannelNames));
+      setBlocks(blocksToTweet);
     }
     // You need to restrict it at some point
-    if (!channels || !blocks) {
+    if (!channels?.length || !Object.keys(blocks)?.length) {
       console.log("GETTING CHANNELS & BLOCKS");
       getChannelsAndBlocks();
     }
   }, [start, end]);
-  if (blocks && arenaToContentBlock) {
+  if (blocks?.length && arenaToContentBlock) {
     console.log({
       block1: blocks?.[0],
       content1: arenaToContentBlock(blocks?.[0]),
       channels,
     });
   }
+
+  // load Twitter content via RSS feed
+  const TWITTER_FEED_RSS_URL =
+    "https://rss.app/feeds/v1.1/cDaks50fS2vLZRo3.json";
+  useEffect(() => {
+    async function getTwitterFeed() {
+      console.log({ TWITTER_FEED_RSS_URL });
+      const response = await fetch(TWITTER_FEED_RSS_URL + "?hl=en&n=200");
+      const jsonBody = await response.json();
+      if (!jsonBody?.items) {
+        return;
+      }
+      for (const rssTweet of jsonBody?.items) {
+        setTweets((oldTweets: any[]) => [...oldTweets, rssTweet]);
+      }
+    }
+    if (!tweets?.length) {
+      console.log("GETTING TWITTER FEED");
+      getTwitterFeed();
+    }
+  });
+  if (tweets) {
+    console.log({
+      tweets,
+      tweet1to5: tweets?.slice(0, 5),
+      numTweets: tweets?.length,
+    });
+  }
+
+  // link tweets and blocks
+  // NOTE: Low Pri for now!!!
+  useEffect(() => {
+    console.log("MAPPING", {
+      tweetBlocksMap,
+    });
+    function mapTweetToBlock() {
+      for (const tweet of tweets) {
+        for (const blockTitle in tweetBlocksMap.blockTitlesToId) {
+          if (!blockTitle) continue;
+          const blockMatchesTweet = tweet.content_text.includes(blockTitle);
+          console.log("MATCHING", {
+            blockTitle,
+            tweetText: tweet?.content_text,
+            blockMatchesTweet,
+          });
+          if (blockMatchesTweet) {
+            const blockId = tweetBlocksMap.blockTitlesToId[blockTitle];
+            console.log("BLOCK MATCHES TWEET", {
+              blockId,
+              blockTitle,
+              tweetId: getTweetIdFromUrl(tweet?.url),
+              tweetText: tweet?.content_text,
+            });
+          }
+        }
+      }
+    }
+    mapTweetToBlock();
+  }, [tweets, blocks]);
+
+  function getTweetIdFromUrl(url: string) {
+    const parts = url.split("/");
+    return parts[parts.length - 1];
+  }
+
+  const TWEET_INTENT_URL = `https://twitter.com/intent/tweet?text=`;
   return (
     <div>
-      <label htmlFor="startdate">Start:</label>
-      <input type="datetime-local" id="startdate" name="startdate" onChange={event => setStart(new Date(event.target.value))}/>
-      <label htmlFor="enddate">End:</label>
-      <input type="datetime-local" id="enddate" name="enddate" onChange={event => setEnd(new Date(event.target.value))}/>
+      <div
+        className={"arena-blocks flex flex-row w-1/2"}
+        style={{ height: "75%", overflow: "auto" }}
+      >
+        <label htmlFor="startdate">Start:</label>
+        <input
+          type="datetime-local"
+          id="startdate"
+          name="startdate"
+          value={start.toISOString()}
+          onChange={(event) => setStart(new Date(event.target.value))}
+        />
 
-      <div className={"arena-blocks flex flex-row"}>
-        <div className={"w-1/2"} style={{height:'75%',overflow:'auto'}}>
+        <label htmlFor="enddate">End:</label>
+        <input
+          type="datetime-local"
+          id="enddate"
+          name="enddate"
+          value={end.toISOString()}
+          onChange={(event) => {
+            console.log("new end", event.target.value);
+            setEnd(new Date(event.target.value));
+          }}
+        />
+      </div>
+
+      <div className={"flex flex-row "}>
+        <div
+          className={"arena-blocks w-1/3 flex flex-col space-y-4"}
+          style={{ height: "75%", overflow: "auto" }}
+        >
+          <h2>ARE.NA</h2>
+          {/* TODO: answer: do we really need infinite scroll rn, fully implement
+            pagination withb loadMore
+          `*/}
           <InfiniteScroll
-              pageStart={0}
-              loadMore={() => {}}
-              hasMore={true || false}
-              loader={<div className="loader" key={0}>Loading ...</div>}
-              useWindow={false}
+            pageStart={0}
+            loadMore={() => {}}
+            hasMore={true || false}
+            loader={
+              <div className="loader" key={0}>
+                Loading ...
+              </div>
+            }
+            useWindow={false}
           >
-            {blocks?.map((block: Arena.Block) =>
-              (<ContentBlock {...arenaToContentBlock(block)} />)
-            )}
-            </InfiniteScroll>
+            {Object.values(blocks)?.map((block: Arena.Block) => {
+              const data = arenaToContentBlock(block);
+              return (
+                <ContentBlock
+                  {...data}
+                  key={"block-" + block.id}
+                  onClick={(_) => {
+                    window.open(
+                      TWEET_INTENT_URL +
+                        encodeURIComponent(fmtBlockAsTweet(block))
+                    );
+                  }}
+                />
+              );
+            })}
+          </InfiniteScroll>
         </div>
-        <div className={"debug-state w-1/2"}>
+
+        <div
+          className={"rss-tweets w-1/3 flex flex-col space-y-4"}
+          style={{ height: "75%", overflow: "auto" }}
+        >
+          <h2 className={""}>TWITTER</h2>
+          {tweets?.map((tweet: RssFeedItem) => (
+            <ContentBlock
+              {...rssToContentBlock(tweet)}
+              key={"tweet-" + getTweetIdFromUrl(tweet.url)}
+            />
+          ))}
+        </div>
+
+        <div className={"debug-state w-1/3"}>
+          <h2>STATE</h2>
           <details>
             <summary>
-              <p>STATE</p>
+              <h2>ARE.NA</h2>
             </summary>
+
             <code>
-            ${JSON.stringify({ blocks, channels }, null, 2)}
+              {JSON.stringify(
+                { blocks: Object.values(blocks), channels },
+                null,
+                2
+              )}
             </code>
+          </details>
+          <details>
+            <summary>
+              <h2>TWITTER</h2>
+            </summary>
+
+            <code>{JSON.stringify({ tweets }, null, 2)}</code>
           </details>
         </div>
       </div>
-      {`STATE:
-    `}
     </div>
   );
 };
