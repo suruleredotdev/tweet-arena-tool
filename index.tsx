@@ -167,13 +167,6 @@ const HomePage = () => {
   const [channels, setChannels] = useState([]);
   const [blocks, setBlocks] = useState<Record<string, Arena.Block>>({});
   const [tweets, setTweets] = useState<RssFeedItem[]>([]);
-  const [tweetBlocksMap, setTweetBlocksMap] = useState<{
-    blockTitlesToId: Record<string, string | number>;
-    blockIdToTweetId: Record<string, string>;
-  }>({
-    blockTitlesToId: {},
-    blockIdToTweetId: {},
-  });
 
   const DEFAULT = {
     start: new Date("2023/08/01"),
@@ -205,15 +198,6 @@ const HomePage = () => {
       );
       console.log("blockTitles to ID", {
         blockTitlesToId,
-      });
-      setTweetBlocksMap((contentMap) => {
-        return {
-          ...contentMap,
-          blockTitlesToId: {
-            ...contentMap.blockTitlesToId,
-            ...blockTitlesToId,
-          },
-        };
       });
       setChannels(Array.from(allChannelNames));
       setBlocks(blocksToTweet);
@@ -259,37 +243,6 @@ const HomePage = () => {
       numTweets: tweets?.length,
     });
   }
-
-  // link tweets and blocks
-  // NOTE: Low Pri for now!!!
-  useEffect(() => {
-    console.log("MAPPING", {
-      tweetBlocksMap,
-    });
-    function mapTweetToBlock() {
-      for (const tweet of tweets) {
-        for (const blockTitle in tweetBlocksMap.blockTitlesToId) {
-          if (!blockTitle) continue;
-          const blockMatchesTweet = tweet.content_text.includes(blockTitle);
-          console.log("MATCHING", {
-            blockTitle,
-            tweetText: tweet?.content_text,
-            blockMatchesTweet,
-          });
-          if (blockMatchesTweet) {
-            const blockId = tweetBlocksMap.blockTitlesToId[blockTitle];
-            console.log("BLOCK MATCHES TWEET", {
-              blockId,
-              blockTitle,
-              tweetId: getTweetIdFromUrl(tweet?.url),
-              tweetText: tweet?.content_text,
-            });
-          }
-        }
-      }
-    }
-    mapTweetToBlock();
-  }, [tweets, blocks]);
 
   function getTweetIdFromUrl(url: string) {
     const parts = url.split("/");
