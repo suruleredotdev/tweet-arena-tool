@@ -9,6 +9,7 @@ import toolConfig from "./post-arena-to-twitter.state.json"
 const TwitterApi = require("twitter-api-v2").TwitterApi;
 const Arena = require("are.na");
 const toolConfig = require("./tool-config.json");
+const sqlite3 = require("sqlite3").verbose();
 
 const LOG_LEVEL = process.env.LOG_LEVEL || "INFO";
 const DRY_RUN = Boolean(process.env.LOG_LEVEL) || toolConfig.dryRunTweet;
@@ -52,6 +53,28 @@ const ARENA_CHANNELS = [
   "Mutual Aid",
   "Startup",
 ];
+
+const db = new sqlite3.Database("post-arena-to-twitter/store.sqlite3");
+async function saveArenaBlock(db, {arenaBlockId, sourceUrl, fullJson}) {
+  return await db.run(
+    `INSERT INTO "ArenaBlock" (block_id, block_source_url, full_json) VALUES (?, ?, ?)
+      ON CONFLICT (block_id)
+      DO UPDATE SET block_source_url = excluded.block_source_url,
+        full_json = excluded.full_json,
+        updated_at = DATE();`,
+    [arenaBlockId, sourceUrl, fullJson],
+  );
+}
+
+async function saveTweetInThread(db, {tweetId, threadId, arenaBlockId}) {
+  return await db.run(
+    `INSERT INTO "TweetInThread" (tweet_id, thread_id, arena_block_id) VALUES (?, ?, ?)
+      ON CONFLICT (arena_block_id)
+      DO UPDATE SET tweet_id = excluded.tweet_id;
+    `,
+    [tweetId, threadId, arenaBlockId],
+  );
+}
 
 async function tweet({text, reply, media, ...args}) {
   // : {text: string, reply?: string, media?: any}) {
@@ -142,9 +165,11 @@ Categories include ${Array.from(allChannelNames).join(", ")}
   }
   let replyToId = data?.id;
   for (const arenaBlock of blocksToTweetList) {
-    /*
-    await saveArenaBlock(db, arenaBlock.id, arenaBlock.source.url)
-    */
+    await saveArenaBlock(db, {
+      arenaBlockId: arenaBlock?.id,
+      sourceUrl: arenaBlock?.source.url,
+      fullJson: JSON.stringify(arenaBlock)
+    })
     const {data: tweetData, errors} = await tweet({
       text: fmtBlockAsTweet(arenaBlock),
       reply: replyToId,
@@ -157,10 +182,11 @@ Categories include ${Array.from(allChannelNames).join(", ")}
       console.error("TWEET ERR", errors);
       return;
     }
-    /*
-    await saveTweetInThread(db, tweetData?.id, arenaBlock.source.url)
-    await linkArenaBlockToTweet(db, arenaBlock?.id, tweetData?.id)
-    */
+    await saveTweetInThread(db, {
+      tweetId: tweetData?.id,
+      threadId: arenaBlock?.source?.url,
+      arenaBlockId: arenaBlock?.id
+    })
     replyToId = tweetData?.id;
   }
 }
@@ -182,12 +208,14 @@ async function runMain() {
     first: channels[0]
   });
 
-  // const db = await openDb();
   try {
+    const seenChannelTitles = new Set();
     for (var i = 0; i < channels.length; i++) {
       const channel = channels[i];
       if (!ARENA_CHANNELS.includes(channel.title)) continue;
-      if (LOG_LEVEL === "INFO") console.info(channel);
+      if (seenChannelTitles.has(channel.title)) continue;
+      seenChannelTitles.add(channel.title);
+      if (LOG_LEVEL === "INFO") console.info(JSON.stringify(channel));
       if (!channel.contents) {
         if (LOG_LEVEL === "DEBUG")
           console.log(`Skipping channel idx ${i} due to empty contents`);
