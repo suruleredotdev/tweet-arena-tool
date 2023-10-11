@@ -165,11 +165,11 @@ Categories include ${Array.from(allChannelNames).join(", ")}
   }
   let replyToId = data?.id;
   for (const arenaBlock of blocksToTweetList) {
-    await saveArenaBlock(db, {
-      arenaBlockId: arenaBlock?.id,
-      sourceUrl: arenaBlock?.source.url,
-      fullJson: JSON.stringify(arenaBlock)
-    })
+    // await saveArenaBlock(db, {
+    //   arenaBlockId: arenaBlock?.id,
+    //   sourceUrl: arenaBlock?.source.url,
+    //   fullJson: JSON.stringify(arenaBlock)
+    // })
     const {data: tweetData, errors} = await tweet({
       text: fmtBlockAsTweet(arenaBlock),
       reply: replyToId,
@@ -182,11 +182,11 @@ Categories include ${Array.from(allChannelNames).join(", ")}
       console.error("TWEET ERR", errors);
       return;
     }
-    await saveTweetInThread(db, {
-      tweetId: tweetData?.id,
-      threadId: arenaBlock?.source?.url,
-      arenaBlockId: arenaBlock?.id
-    })
+    // await saveTweetInThread(db, {
+    //   tweetId: tweetData?.id,
+    //   threadId: arenaBlock?.source?.url,
+    //   arenaBlockId: arenaBlock?.id
+    // })
     replyToId = tweetData?.id;
   }
 }
