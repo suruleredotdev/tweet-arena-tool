@@ -56,17 +56,17 @@ function arenaToContentBlock(arenaBlock: Arena.Block): Content {
   if (!arenaBlock) return MOCK_CONTENT;
   return {
     profileImageUrl: arenaBlock.user.avatar,
-    bodyImageUrl: arenaBlock.image.display.url,
+    bodyImageUrl: arenaBlock?.image?.display?.url || "",
     profileName: arenaBlock.user.username,
     bodyText: (
       <div>
         {`${arenaBlock.title}:\n${arenaBlock.description}`}
         <br />
         <a
-          href={arenaBlock.source.url}
+          href={arenaBlock.source?.url || ""}
           style={{ color: "blue", textDecoration: "underline" }}
         >
-          {arenaBlock.source.url}
+          {arenaBlock.source?.url || ""}
         </a>
       </div>
     ),
@@ -86,7 +86,7 @@ function rssToContentBlock(feedItem: RssFeedItem): Content {
   return {
     profileImageUrl: "", // feedItem.author.avatar,
     bodyImageUrl: feedItem.image || "",
-    profileName: feedItem.authors[0].name,
+    profileName: feedItem.authors?.[0].name || "",
     bodyText: (
       <div>
         {`${feedItem.title}:\n${feedItem.content_text}`}
@@ -169,7 +169,7 @@ const HomePage = () => {
   const [tweets, setTweets] = useState<RssFeedItem[]>([]);
 
   const DEFAULT = {
-    start: new Date("2023/08/01"),
+    start: new Date("2023/05/01"),
     end: new Date("2023/08/31"),
   };
   const [start, setStart] = useState(DEFAULT.start);
@@ -245,8 +245,8 @@ const HomePage = () => {
   }
 
   function getTweetIdFromUrl(url: string) {
-    const parts = url.split("/");
-    return parts[parts.length - 1];
+    const parts = url?.split("/");
+    return parts?.[parts.length - 1] || "";
   }
 
   const TWEET_INTENT_URL = `https://twitter.com/intent/tweet?text=`;
