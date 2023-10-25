@@ -37,6 +37,11 @@ export interface Author {
   name: string;
 }
 
+const DEFAULT_ARGS = {
+  start: new Date("2023/08/01"),
+  end: new Date("2023/10/31"),
+};
+
 const MOCK_CONTENT: Content = {
   profileImageUrl: "https://avatars0.githubusercontent.com/u/38799309?v=4",
   bodyImageUrl:
@@ -167,13 +172,12 @@ const HomePage = () => {
   const [channels, setChannels] = useState([]);
   const [blocks, setBlocks] = useState<Record<string, Arena.Block>>({});
   const [tweets, setTweets] = useState<RssFeedItem[]>([]);
+  const [start, setStart] = useState(DEFAULT_ARGS.start);
+  const [end, setEnd] = useState(DEFAULT_ARGS.end);
 
-  const DEFAULT = {
-    start: new Date("2023/05/01"),
-    end: new Date("2023/08/31"),
-  };
-  const [start, setStart] = useState(DEFAULT.start);
-  const [end, setEnd] = useState(DEFAULT.end);
+  const [toggleRowCol, setToggleRowCol] = useState<"row" | "col">("row");
+
+  const BLOCK_LIMIT = 25;
 
   console.log("ARGS", { start, end });
 
@@ -250,10 +254,12 @@ const HomePage = () => {
   }
 
   const TWEET_INTENT_URL = `https://twitter.com/intent/tweet?text=`;
+
+  const panelClasses = toggleRowCol === "col" ? "flex-col w-1/2" : "flex-row h-1/2"
   return (
-    <div>
+    <div className={"app-body"}>
       <div
-        className={"arena-blocks flex flex-row w-1/2"}
+        className={`app-settings flex ${panelClasses}`}
         style={{ height: "75%", overflow: "auto" }}
       >
         <label htmlFor="startdate">Start:</label>
@@ -262,7 +268,10 @@ const HomePage = () => {
           id="startdate"
           name="startdate"
           value={start.toISOString()}
-          onChange={(event) => setStart(new Date(event.target.value))}
+          onChange={(event) => {
+            console.log("input.change:setStartDate", event.target.value)
+            setStart(new Date(event.target.value))
+          }}
         />
 
         <label htmlFor="enddate">End:</label>
@@ -280,7 +289,7 @@ const HomePage = () => {
 
       <div className={"flex flex-row "}>
         <div
-          className={"arena-blocks w-1/3 flex flex-col space-y-4"}
+          className={"arena-blocks w-1/3 flex flex-row space-y-4"}
           style={{ height: "75%", overflow: "auto" }}
         >
           <h2>ARE.NA</h2>
@@ -298,7 +307,10 @@ const HomePage = () => {
             }
             useWindow={false}
           >
-            {Object.values(blocks)?.map((block: Arena.Block) => {
+            {Object.values(blocks)
+              .slice(0, BLOCK_LIMIT)
+              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+              .map((block: Arena.Block) => {
               const data = arenaToContentBlock(block);
               return (
                 <ContentBlock
