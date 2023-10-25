@@ -38,7 +38,7 @@ export interface Author {
 }
 
 const DEFAULT_ARGS = {
-  start: new Date("2023/08/01"),
+  start: new Date("2023/10/01"),
   end: new Date("2023/10/31"),
 };
 
@@ -185,14 +185,15 @@ const HomePage = () => {
   useEffect(() => {
     console.log("EFFECT");
     // React advises to declare the async function directly inside useEffect
-    async function getChannelsAndBlocks() {
+    async function loadChannelsAndBlocks() {
       const channels = await arenaClient.user(ARENA_USER.id).channels();
+      setChannels(channels);
       console.log(
         "ARENA channels resp",
         channels?.map((c: Arena.Channel) => c.title),
         channels?.length
       );
-      const { blocksToTweet, allChannelNames } = await getBlocksToPost(
+      const { blocksToTweet } = await getBlocksToPost(
         channels,
         start,
         end
@@ -203,13 +204,24 @@ const HomePage = () => {
       console.log("blockTitles to ID", {
         blockTitlesToId,
       });
-      setChannels(Array.from(allChannelNames));
       setBlocks(blocksToTweet);
     }
+
+    async function filterLoadedBlocks() {
+      const { blocksToTweet } = await getBlocksToPost(
+        channels,
+        start,
+        end
+      );
+      setBlocks(blocksToTweet);
+    }
+
     // You need to restrict it at some point
     if (!channels?.length || !Object.keys(blocks)?.length) {
       console.log("GETTING CHANNELS & BLOCKS");
-      getChannelsAndBlocks();
+      loadChannelsAndBlocks();
+    } else {
+      filterLoadedBlocks();
     }
   }, [start, end]);
   if (blocks?.length && arenaToContentBlock) {
@@ -267,10 +279,11 @@ const HomePage = () => {
           type="datetime-local"
           id="startdate"
           name="startdate"
-          value={start.toISOString()}
-          onChange={(event) => {
-            console.log("input.change:setStartDate", event.target.value)
-            setStart(new Date(event.target.value))
+          value={start.toISOString().slice(0,16)}
+          onInput={(event) => {
+            const value = (event.target as HTMLInputElement).value
+            console.log("input.change:setStartDate", value)
+            setStart(new Date(value))
           }}
         />
 
@@ -279,10 +292,11 @@ const HomePage = () => {
           type="datetime-local"
           id="enddate"
           name="enddate"
-          value={end.toISOString()}
-          onChange={(event) => {
-            console.log("new end", event.target.value);
-            setEnd(new Date(event.target.value));
+          value={end.toISOString().slice(0,16)}
+          onInput={(event) => {
+            const value = (event.target as HTMLInputElement).value
+            console.log("input.change:setEndDate", value);
+            setEnd(new Date(value));
           }}
         />
       </div>
