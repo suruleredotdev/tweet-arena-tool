@@ -14,7 +14,7 @@ export const LOG_LEVEL = process.env.LOG_LEVEL || "ERROR";
 export const ARENA_USER = {
   slug: "korede-aderele",
   id: 60392,
-  token: process.env.ARENA_PERSONAL_ACCESS_TOKEN,
+  token: process.env.ARENA_PERSONAL_ACCESS_TOKEN
 };
 
 export const arenaClient = new Arena({ accessToken: ARENA_USER.token });
@@ -41,16 +41,17 @@ export const ARENA_CHANNELS = [
   "Nigeria Politics",
   "Maps",
   "Mutual Aid",
-  "Startup",
+  "Startup"
 ];
 
 export function fmtBlockAsTweet(block: Arena.Block) {
   const MAX_TITLE_LEN = 75;
   const MAX_DESC_LEN = 140 - (block.source?.url?.length || 0);
 
-  return `${block.title?.slice(0, MAX_TITLE_LEN) + ":\n" || ""}${
-    block.description?.slice(0, MAX_DESC_LEN) || ""
-  }${block.description?.length > MAX_DESC_LEN ? "..." : ""}
+  return `${block.title?.slice(0, MAX_TITLE_LEN) + ":\n" ||
+    ""}${block.description?.slice(0, MAX_DESC_LEN) || ""}${
+    block.description?.length > MAX_DESC_LEN ? "..." : ""
+  }
 
 Context: https://are.na/block/${block.id}
 Source: ${block.source?.url}
@@ -84,13 +85,13 @@ export async function getBlocksToPost(
       console.log(">> blocks loop start");
       for (var j = 0; j < channel.contents?.length; j++) {
         console.log(`>>> blocks iter ${j} start`, {
-          channel_name: channel.title,
+          channel_name: channel.title
         });
         const block = channel.contents[j];
         let block_connected_date = new Date(
           Math.min.apply(null, [
             new Date(block?.connections?.[0]?.created_at || block.created_at),
-            new Date(block?.connections?.[0]?.created_at || block.created_at),
+            new Date(block?.connections?.[0]?.created_at || block.created_at)
           ])
         );
         console.log(
@@ -118,7 +119,7 @@ export async function getBlocksToPost(
           name: channel.title,
           blocks_preview: channel.contents
             ?.slice(0, 5)
-            .map((block) => block.title),
+            .map(block => block.title)
         });
     }
     console.log("ARENA", blocksToTweet);
@@ -129,7 +130,7 @@ export async function getBlocksToPost(
   } finally {
     return {
       blocksToTweet,
-      allChannelNames,
+      allChannelNames
     };
   }
 }

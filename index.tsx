@@ -6,7 +6,7 @@ import {
   getBlocksToPost,
   arenaClient,
   ARENA_USER,
-  fmtBlockAsTweet,
+  fmtBlockAsTweet
 } from "./lib";
 
 type Content = {
@@ -39,7 +39,7 @@ export interface Author {
 
 const DEFAULT_ARGS = {
   start: new Date("2023/10/01"),
-  end: new Date("2023/10/31"),
+  end: new Date("2023/10/31")
 };
 
 const MOCK_CONTENT: Content = {
@@ -52,9 +52,9 @@ const MOCK_CONTENT: Content = {
   commentCount: 14,
   commentPreview: {
     profileName: "",
-    text: "",
+    text: ""
   },
-  postDate: new Date(),
+  postDate: new Date()
 };
 
 function arenaToContentBlock(arenaBlock: Arena.Block): Content {
@@ -78,11 +78,11 @@ function arenaToContentBlock(arenaBlock: Arena.Block): Content {
     commentCount: arenaBlock.comment_count,
     commentPreview: {
       profileName: "",
-      text: "",
+      text: ""
     },
     postDate: new Date(
       arenaBlock?.connections?.[0]?.updated_at || arenaBlock.created_at
-    ),
+    )
   };
 }
 
@@ -107,9 +107,9 @@ function rssToContentBlock(feedItem: RssFeedItem): Content {
     commentCount: 0,
     commentPreview: {
       profileName: "",
-      text: "",
+      text: ""
     },
-    postDate: new Date(feedItem.date_published),
+    postDate: new Date(feedItem.date_published)
   };
 }
 
@@ -122,7 +122,7 @@ const ContentBlock = ({
   // commentPreview,
   postDate,
   key,
-  onClick,
+  onClick
 }: Content & { key: string; onClick?: (e: any) => void }) => (
   <div
     id={key}
@@ -172,8 +172,12 @@ const HomePage = () => {
   const [channels, setChannels] = useState([]);
   const [blocks, setBlocks] = useState<Record<string, Arena.Block>>({});
   const [tweets, setTweets] = useState<RssFeedItem[]>([]);
-  const [start, setStart] = useState(DEFAULT_ARGS.start);
-  const [end, setEnd] = useState(DEFAULT_ARGS.end);
+  const [start, setStart] = useState(
+    localStorage.getItem("startDate") || DEFAULT_ARGS.start
+  );
+  const [end, setEnd] = useState(
+    localStorage.getItem("endDate") || DEFAULT_ARGS.end
+  );
 
   const [toggleRowCol, setToggleRowCol] = useState<"row" | "col">("row");
 
@@ -193,26 +197,18 @@ const HomePage = () => {
         channels?.map((c: Arena.Channel) => c.title),
         channels?.length
       );
-      const { blocksToTweet } = await getBlocksToPost(
-        channels,
-        start,
-        end
-      );
+      const { blocksToTweet } = await getBlocksToPost(channels, start, end);
       const blockTitlesToId = Object.fromEntries(
         Object.values(blocksToTweet)?.map((b: Arena.Block) => [b.title, b.id])
       );
       console.log("blockTitles to ID", {
-        blockTitlesToId,
+        blockTitlesToId
       });
       setBlocks(blocksToTweet);
     }
 
     async function filterLoadedBlocks() {
-      const { blocksToTweet } = await getBlocksToPost(
-        channels,
-        start,
-        end
-      );
+      const { blocksToTweet } = await getBlocksToPost(channels, start, end);
       setBlocks(blocksToTweet);
     }
 
@@ -228,7 +224,7 @@ const HomePage = () => {
     console.log({
       block1: blocks?.[0],
       content1: arenaToContentBlock(blocks?.[0]),
-      channels,
+      channels
     });
   }
 
@@ -256,7 +252,7 @@ const HomePage = () => {
     console.log({
       tweets,
       tweet1to5: tweets?.slice(0, 5),
-      numTweets: tweets?.length,
+      numTweets: tweets?.length
     });
   }
 
@@ -267,7 +263,8 @@ const HomePage = () => {
 
   const TWEET_INTENT_URL = `https://twitter.com/intent/tweet?text=`;
 
-  const panelClasses = toggleRowCol === "col" ? "flex-col w-1/2" : "flex-row h-1/2"
+  const panelClasses =
+    toggleRowCol === "col" ? "flex-col w-1/2" : "flex-row h-1/2";
   return (
     <div className={"app-body"}>
       <div
@@ -279,11 +276,11 @@ const HomePage = () => {
           type="datetime-local"
           id="startdate"
           name="startdate"
-          value={start.toISOString().slice(0,16)}
-          onInput={(event) => {
-            const value = (event.target as HTMLInputElement).value
-            console.log("input.change:setStartDate", value)
-            setStart(new Date(value))
+          value={start.toISOString().slice(0, 16)}
+          onInput={event => {
+            const value = (event.target as HTMLInputElement).value;
+            console.log("input.change:setStartDate", value);
+            setStart(new Date(value));
           }}
         />
 
@@ -292,9 +289,9 @@ const HomePage = () => {
           type="datetime-local"
           id="enddate"
           name="enddate"
-          value={end.toISOString().slice(0,16)}
-          onInput={(event) => {
-            const value = (event.target as HTMLInputElement).value
+          value={end.toISOString().slice(0, 16)}
+          onInput={event => {
+            const value = (event.target as HTMLInputElement).value;
             console.log("input.change:setEndDate", value);
             setEnd(new Date(value));
           }}
@@ -323,22 +320,26 @@ const HomePage = () => {
           >
             {Object.values(blocks)
               .slice(0, BLOCK_LIMIT)
-              .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+              .sort(
+                (a, b) =>
+                  new Date(b.updated_at).getTime() -
+                  new Date(a.updated_at).getTime()
+              )
               .map((block: Arena.Block) => {
-              const data = arenaToContentBlock(block);
-              return (
-                <ContentBlock
-                  {...data}
-                  key={"block-" + block.id}
-                  onClick={(_) => {
-                    window.open(
-                      TWEET_INTENT_URL +
-                        encodeURIComponent(fmtBlockAsTweet(block))
-                    );
-                  }}
-                />
-              );
-            })}
+                const data = arenaToContentBlock(block);
+                return (
+                  <ContentBlock
+                    {...data}
+                    key={"block-" + block.id}
+                    onClick={_ => {
+                      window.open(
+                        TWEET_INTENT_URL +
+                          encodeURIComponent(fmtBlockAsTweet(block))
+                      );
+                    }}
+                  />
+                );
+              })}
           </InfiniteScroll>
         </div>
 
