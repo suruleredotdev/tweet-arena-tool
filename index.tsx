@@ -173,10 +173,10 @@ const HomePage = () => {
   const [blocks, setBlocks] = useState<Record<string, Arena.Block>>({});
   const [tweets, setTweets] = useState<RssFeedItem[]>([]);
   const [start, setStart] = useState(
-    localStorage.getItem("startDate") || DEFAULT_ARGS.start
+    new Date(window.localStorage.getItem("startDate")) || DEFAULT_ARGS.start
   );
   const [end, setEnd] = useState(
-    localStorage.getItem("endDate") || DEFAULT_ARGS.end
+    new Date(window.localStorage.getItem("endDate")) || DEFAULT_ARGS.end
   );
 
   const [toggleRowCol, setToggleRowCol] = useState<"row" | "col">("row");
@@ -281,6 +281,7 @@ const HomePage = () => {
             const value = (event.target as HTMLInputElement).value;
             console.log("input.change:setStartDate", value);
             setStart(new Date(value));
+            window.localStorage.setItem("startDate", value)
           }}
         />
 
@@ -294,6 +295,7 @@ const HomePage = () => {
             const value = (event.target as HTMLInputElement).value;
             console.log("input.change:setEndDate", value);
             setEnd(new Date(value));
+            window.localStorage.setItem("endDate", value)
           }}
         />
       </div>
