@@ -173,10 +173,14 @@ const HomePage = () => {
   const [blocks, setBlocks] = useState<Record<string, Arena.Block>>({});
   const [tweets, setTweets] = useState<RssFeedItem[]>([]);
   const [start, setStart] = useState(
-    new Date(window.localStorage.getItem("startDate")) || DEFAULT_ARGS.start
+    window.localStorage.getItem("startDate") ?
+      new Date(window.localStorage.getItem("startDate"))
+      : DEFAULT_ARGS.start
   );
   const [end, setEnd] = useState(
-    new Date(window.localStorage.getItem("endDate")) || DEFAULT_ARGS.end
+    window.localStorage.getItem("endDate") ?
+      new Date(window.localStorage.getItem("endDate"))
+      : DEFAULT_ARGS.end
   );
 
   const [toggleRowCol, setToggleRowCol] = useState<"row" | "col">("row");
@@ -185,7 +189,7 @@ const HomePage = () => {
 
   console.log("ARGS", { start, end });
 
-  // load Are.na content
+  // load Are.na content - triggered by change to start/end date inputs
   useEffect(() => {
     console.log("EFFECT");
     // React advises to declare the async function directly inside useEffect
@@ -312,7 +316,7 @@ const HomePage = () => {
           <InfiniteScroll
             pageStart={0}
             loadMore={() => {}}
-            hasMore={true || false}
+            hasMore={true}
             loader={
               <div className="loader" key={0}>
                 Loading ...
