@@ -59,6 +59,7 @@ const MOCK_CONTENT: Content = {
 };
 
 const ARENA_UID = "YTnJJj7L0qQB5XajPlR5TzIsqW17Od-81667rLEaIs8";
+const ARENA_CLIENT_SECRET = "Xv2a-2QatR6xHjP6rh8xAzjjach0ZvBCfDqNn1tHkh8";
 
 function arenaToContentBlock(arenaBlock: Arena.Block): Content {
   if (!arenaBlock) return MOCK_CONTENT;
@@ -221,9 +222,9 @@ const HomePage = () => {
     const requestAccessToken = async function (authCode: string) {
       const url = `https://dev.are.na/oauth/token?client_id=${encodeURIComponent(
         arenaClientId
-      )}&client_secret=${encodeURIComponent(
-        authCode
-      )}&code=RETURNED_CODE&grant_type=authorization_code&redirect_uri=${encodeURIComponent(
+      )}&client_secret=${
+        ARENA_CLIENT_SECRET
+      }&code=${authCode}&grant_type=authorization_code&redirect_uri=${encodeURIComponent(
         callbackUrl
       )}`;
       const resp = await fetch(url, { method: "POST" });
