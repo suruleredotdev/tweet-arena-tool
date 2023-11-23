@@ -17,7 +17,7 @@ export const ARENA_USER = {
   token: process.env.ARENA_PERSONAL_ACCESS_TOKEN,
 };
 
-export const arenaClient = new Arena({ accessToken: ARENA_USER.token });
+export const defaultArenaClient = new Arena({ accessToken: ARENA_USER.token });
 
 export const ARENA_CHANNELS = [
   // 'SURULERE RESEARCH',
@@ -59,7 +59,7 @@ Source: ${block.source?.url}
 }
 
 // load Are.na content - triggered by change to start/end date inputs
-export async function loadBlocksFromAllChannels() {
+export async function loadBlocksFromAllChannels(arenaClient: Arena) {
   const allChannels: Array<Arena.Channel> = window.localStorage.getItem(
     "allChannels"
   )

@@ -5,9 +5,9 @@ import InfiniteScroll from "react-infinite-scroller";
 import {
   loadBlocksFromAllChannels,
   filterBlocks,
-  arenaClient,
+  defaultArenaClient,
   ARENA_USER,
-  fmtBlockAsTweet
+  fmtBlockAsTweet,
 } from "./lib";
 
 type Content = {
@@ -40,7 +40,7 @@ export interface Author {
 
 const DEFAULT_ARGS = {
   start: new Date("2023/10/01"),
-  end: new Date("2023/10/31")
+  end: new Date("2023/10/31"),
 };
 
 const MOCK_CONTENT: Content = {
@@ -53,9 +53,9 @@ const MOCK_CONTENT: Content = {
   commentCount: 14,
   commentPreview: {
     profileName: "",
-    text: ""
+    text: "",
   },
-  postDate: new Date()
+  postDate: new Date(),
 };
 
 function arenaToContentBlock(arenaBlock: Arena.Block): Content {
@@ -79,11 +79,11 @@ function arenaToContentBlock(arenaBlock: Arena.Block): Content {
     commentCount: arenaBlock.comment_count,
     commentPreview: {
       profileName: "",
-      text: ""
+      text: "",
     },
     postDate: new Date(
       arenaBlock?.connections?.[0]?.updated_at || arenaBlock.created_at
-    )
+    ),
   };
 }
 
@@ -108,9 +108,9 @@ function rssToContentBlock(feedItem: RssFeedItem): Content {
     commentCount: 0,
     commentPreview: {
       profileName: "",
-      text: ""
+      text: "",
     },
-    postDate: new Date(feedItem.date_published)
+    postDate: new Date(feedItem.date_published),
   };
 }
 
@@ -123,7 +123,7 @@ const ContentBlock = ({
   // commentPreview,
   postDate,
   idKey,
-  onClick
+  onClick,
 }: Content & { idKey: string; onClick?: (e: any) => void }) => (
   <div
     key={idKey}
@@ -176,13 +176,13 @@ const HomePage = () => {
   // input state
   const [channelNames, setChannelNames] = useState<Array<string>>([]); // TODO: change to inputs of channel names
   const [start, setStart] = useState(
-    window.localStorage.getItem("startDate") ?
-      new Date(window.localStorage.getItem("startDate"))
+    window.localStorage.getItem("startDate")
+      ? new Date(window.localStorage.getItem("startDate"))
       : DEFAULT_ARGS.start
   );
   const [end, setEnd] = useState(
-    window.localStorage.getItem("endDate") ?
-      new Date(window.localStorage.getItem("endDate"))
+    window.localStorage.getItem("endDate")
+      ? new Date(window.localStorage.getItem("endDate"))
       : DEFAULT_ARGS.end
   );
 
@@ -204,20 +204,59 @@ const HomePage = () => {
   */
 
   useEffect(() => {
+    const arenaAccessToken =
+      window.localStorage.getItem("arenaAccessToken") ||
+      process.env.ARENA_PERSONAL_ACCESS_TOKEN;
+
+    const arenaClientId = process.env.ARENA_UID;
+    const callbackUrl = `https://tweet-arena-tool.surulere.dev`;
+    const urlParams = new URLSearchParams(window.location.search);
+    const requestAuthWithRedirect = async function () {
+      window.location.href = `http://dev.are.na/oauth/authorize?client_id=${encodeURIComponent(
+        arenaClientId
+      )}&redirect_uri=${encodeURIComponent(callbackUrl)}&response_type=code`;
+    };
+    const requestAccessToken = async function (authCode: string) {
+      const url = `https://dev.are.na/oauth/token?client_id=${encodeURIComponent(
+        arenaClientId
+      )}&client_secret=${encodeURIComponent(
+        authCode
+      )}&code=RETURNED_CODE&grant_type=authorization_code&redirect_uri=${encodeURIComponent(
+        callbackUrl
+      )}`;
+      const resp = await fetch(url, { method: "POST" });
+      const json = await resp.json();
+      console.log({
+        title: "arena access token request",
+        json,
+      });
+      window.localStorage.setItem("arenaAccessToken", json.access_token);
+    };
+
+    if (!arenaAccessToken) {
+      const authCode = urlParams.get("code");
+      if (!authCode) {
+        // request auth
+        requestAuthWithRedirect();
+      } else {
+        requestAccessToken(authCode);
+      }
+    }
+  });
+
+  useEffect(() => {
     console.log("EFFECT");
     if (!Object.keys(blocks)?.length) {
       console.log("GETTING CHANNELS & BLOCKS");
       (async () => {
         try {
-          const {
-            blocksMap,
-            channelNamesToBlockIds,
-          } = await loadBlocksFromAllChannels();
+          const { blocksMap, channelNamesToBlockIds } =
+            await loadBlocksFromAllChannels(defaultArenaClient);
           setBlocks(blocksMap);
           setChannelNames(Object.keys(channelNamesToBlockIds));
         } catch (err) {
           console.error("ARENA ERR", err);
-          throw err
+          throw err;
         }
       })();
     }
@@ -226,7 +265,7 @@ const HomePage = () => {
     console.log({
       block1: blocks?.[0],
       content1: arenaToContentBlock(blocks?.[0]),
-      channels: channelNames
+      channels: channelNames,
     });
   }
 
@@ -254,7 +293,7 @@ const HomePage = () => {
     console.log({
       tweets,
       tweet1to5: tweets?.slice(0, 5),
-      numTweets: tweets?.length
+      numTweets: tweets?.length,
     });
   }
 
@@ -279,11 +318,11 @@ const HomePage = () => {
           id="startdate"
           name="startdate"
           value={start.toISOString().slice(0, 16)}
-          onInput={event => {
+          onInput={(event) => {
             const value = (event.target as HTMLInputElement).value;
             console.log("input.change:setStartDate", value);
             setStart(new Date(value));
-            window.localStorage.setItem("startDate", value)
+            window.localStorage.setItem("startDate", value);
           }}
         />
 
@@ -293,11 +332,11 @@ const HomePage = () => {
           id="enddate"
           name="enddate"
           value={end.toISOString().slice(0, 16)}
-          onInput={event => {
+          onInput={(event) => {
             const value = (event.target as HTMLInputElement).value;
             console.log("input.change:setEndDate", value);
             setEnd(new Date(value));
-            window.localStorage.setItem("endDate", value)
+            window.localStorage.setItem("endDate", value);
           }}
         />
 
@@ -306,11 +345,10 @@ const HomePage = () => {
           id="clearStorage"
           name="clearStorage"
           value="Clear Storage"
-          onClick={_ => {
-            window.localStorage.clear()
+          onClick={(_) => {
+            window.localStorage.clear();
           }}
         />
-
       </div>
 
       <div className={"flex flex-row "}>
@@ -319,9 +357,6 @@ const HomePage = () => {
           style={{ height: "75%", overflow: "y" }}
         >
           <h2>ARE.NA</h2>
-          {/* TODO: answer: do we really need infinite scroll rn, fully implement
-            pagination withb loadMore
-          `*/}
           <div
             className={"flex flex-col space-y-4"}
             style={{ height: "700px", overflow: "y" }}
@@ -351,7 +386,7 @@ const HomePage = () => {
                       {...data}
                       key={"block-" + block.id}
                       idKey={"block-" + block.id}
-                      onClick={_ => {
+                      onClick={(_) => {
                         window.open(
                           TWEET_INTENT_URL +
                             encodeURIComponent(fmtBlockAsTweet(block))
@@ -386,11 +421,7 @@ const HomePage = () => {
             </summary>
 
             <code>
-              {JSON.stringify(
-                { blocks: Object.values(blocks) },
-                null,
-                2
-              )}
+              {JSON.stringify({ blocks: Object.values(blocks) }, null, 2)}
             </code>
           </details>
           <details>
