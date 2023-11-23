@@ -19,6 +19,7 @@
     "build": "webpack --mode=production",
     "noop": "exit 0",
     "deploy-vercel": "vercel deploy",
+    "homepage": "https://suruleredotdev.github.io/tweet-arena-tool",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
     "format": "prettier --write \"*.+(ts|tsx|js|jsx|json|css|md)\""
