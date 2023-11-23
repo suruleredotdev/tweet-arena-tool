@@ -38,8 +38,8 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
           ref: ${{ inputs.commit_version }}
-      - run: npm install --save-dev cross-env typescript @types/react @next/bundle-analyzer # arg src: https://github.com/apotdevin/thunderhub/issues/104#issuecomment-665566260
-      - run: npm install
+      - run: npm install --save-dev webpack dotenv-webpack cross-env typescript @types/react @next/bundle-analyzer # arg src: https://github.com/apotdevin/thunderhub/issues/104#issuecomment-665566260
+      - run: npm install --production=false
       - run: npm run build
       - run: npm run export
       - name: Upload Artifacts
