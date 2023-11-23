@@ -207,9 +207,7 @@ const HomePage = () => {
   */
 
   useEffect(() => {
-    const arenaAccessToken =
-      window.localStorage.getItem("arenaAccessToken") ||
-      process.env.ARENA_PERSONAL_ACCESS_TOKEN;
+    console.log("EFFECT: INIT");
 
     const arenaClientId = ARENA_UID;
     const callbackUrl = `https://tweet-arena-tool.surulere.dev`;
@@ -234,49 +232,49 @@ const HomePage = () => {
         json,
       });
       window.localStorage.setItem("arenaAccessToken", json.access_token);
+      return json.access_token;
     };
 
-    if (!arenaAccessToken) {
-      const authCode = urlParams.get("code");
-      if (!authCode) {
-        // request auth
-        requestAuthWithRedirect();
-      } else {
-        requestAccessToken(authCode);
+    const fetchArenaChannels = async (arenaClient: Arena) => {
+      try {
+        const { blocksMap, channelNamesToBlockIds } =
+          await loadBlocksFromAllChannels(arenaClient);
+        setBlocks(blocksMap);
+        setChannelNames(Object.keys(channelNamesToBlockIds));
+      } catch (err) {
+        console.error("ARENA ERR", err);
+        throw err;
       }
-    }
-  });
+    };
 
-  useEffect(() => {
-    console.log("EFFECT");
-    if (!Object.keys(blocks)?.length) {
-      console.log("GETTING CHANNELS & BLOCKS");
-      (async () => {
-        try {
-          const arenaAccessToken =
-            window.localStorage.getItem("arenaAccessToken") ||
-            process.env.ARENA_PERSONAL_ACCESS_TOKEN;
-          const arenaClient = arenaAccessToken
-            ? new Arena({ accessToken: arenaAccessToken })
-            : defaultArenaClient;
-          const { blocksMap, channelNamesToBlockIds } =
-            await loadBlocksFromAllChannels(arenaClient);
-          setBlocks(blocksMap);
-          setChannelNames(Object.keys(channelNamesToBlockIds));
-        } catch (err) {
-          console.error("ARENA ERR", err);
-          throw err;
+    (async () => {
+      let arenaAccessToken =
+        window.localStorage.getItem("arenaAccessToken") ||
+        process.env.ARENA_PERSONAL_ACCESS_TOKEN;
+      if (!arenaAccessToken) {
+        const authCode = urlParams.get("code");
+        if (!authCode) {
+          // request auth
+          await requestAuthWithRedirect();
+        } else {
+          arenaAccessToken = await requestAccessToken(authCode);
         }
-      })();
-    }
+      }
+      const arenaClient = arenaAccessToken
+        ? new Arena({ accessToken: arenaAccessToken })
+        : defaultArenaClient;
+      if (!Object.keys(blocks)?.length) {
+        await fetchArenaChannels(arenaClient);
+      }
+      if (blocks?.length && arenaToContentBlock) {
+        console.log({
+          block1: blocks?.[0],
+          content1: arenaToContentBlock(blocks?.[0]),
+          channels: channelNames,
+        });
+      }
+    })();
   });
-  if (blocks?.length && arenaToContentBlock) {
-    console.log({
-      block1: blocks?.[0],
-      content1: arenaToContentBlock(blocks?.[0]),
-      channels: channelNames,
-    });
-  }
 
   // load Twitter content via RSS feed
   const TWITTER_FEED_RSS_URL =
