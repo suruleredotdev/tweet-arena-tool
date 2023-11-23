@@ -14,7 +14,7 @@ export const LOG_LEVEL = process.env.LOG_LEVEL || "ERROR";
 export const ARENA_USER = {
   slug: "korede-aderele",
   id: 60392,
-  token: process.env.ARENA_PERSONAL_ACCESS_TOKEN
+  token: process.env.ARENA_PERSONAL_ACCESS_TOKEN,
 };
 
 export const arenaClient = new Arena({ accessToken: ARENA_USER.token });
@@ -33,6 +33,7 @@ export const ARENA_CHANNELS = [
   "Oral Tradition",
   "Nigeria History",
   "Nigeria Politics",
+  "Buddhism",
 
   "Music Production",
   // 'sociology, economics',
@@ -41,96 +42,92 @@ export const ARENA_CHANNELS = [
   "Nigeria Politics",
   "Maps",
   "Mutual Aid",
-  "Startup"
+  "Startup",
 ];
 
 export function fmtBlockAsTweet(block: Arena.Block) {
   const MAX_TITLE_LEN = 75;
   const MAX_DESC_LEN = 140 - (block.source?.url?.length || 0);
 
-  return `${block.title?.slice(0, MAX_TITLE_LEN) + ":\n" ||
-    ""}${block.description?.slice(0, MAX_DESC_LEN) || ""}${
-    block.description?.length > MAX_DESC_LEN ? "..." : ""
-  }
+  return `${block.title?.slice(0, MAX_TITLE_LEN) + ":\n" || ""}${
+    block.description?.slice(0, MAX_DESC_LEN) || ""
+  }${block.description?.length > MAX_DESC_LEN ? "..." : ""}
 
 Context: https://are.na/block/${block.id}
 Source: ${block.source?.url}
 `.trim();
 }
 
-export async function getBlocksToPost(
-  channels: Array<Arena.Channel>,
+// load Are.na content - triggered by change to start/end date inputs
+export async function loadBlocksFromAllChannels() {
+  const allChannels: Array<Arena.Channel> = window.localStorage.getItem(
+    "allChannels"
+  )
+    ? JSON.parse(window.localStorage.getItem("allChannels"))
+    : await arenaClient.user(ARENA_USER.id).channels();
+  const channelNamesToBlockIds = Object.fromEntries(
+    allChannels?.map((c: Arena.Channel) => [c.title, []])
+  );
+  const allBlocks: Array<Arena.Block> = [];
+  allChannels?.map((c: Arena.Channel) => {
+    allBlocks.push(...c.contents);
+    channelNamesToBlockIds[c.title].push();
+  });
+  const blocksMap = Object.fromEntries(
+    allBlocks?.map((b: Arena.Block) => [b.id, b])
+  );
+  return {
+    blocksMap,
+    channelNamesToBlockIds,
+  };
+}
+
+export function filterBlocks(
+  blocksMap: Record<string, Arena.Block>,
+  selectedChannelsNames: Array<string>,
   postNewBlocksSince: Date,
   postNewBlocksTill: Date
-): Promise<{
-  blocksToTweet: Record<number, Arena.Block>;
-  allChannelNames: Set<string>;
-}> {
+): Record<number, Arena.Block> {
+  console.log({ selectedChannelsNames });
   const blocksToTweet: Record<number, Arena.Block> = {};
-  const allChannelNames = new Set<string>();
-  const blockChannelsMap: Record<string, Set<string>> = {};
-  // const db = await openDb();
+  const blocks: Array<Arena.Block> = Object.values(blocksMap);
   try {
-    console.log("ARENA channels resp 0", channels[0]);
-    console.log("> channels loop start");
-    for (var i = 0; i < channels.length; i++) {
-      console.log(`>> channels iter ${i}`);
-      const channel = channels[i];
-      if (!ARENA_CHANNELS.includes(channel.title)) continue;
-      if (!channel.contents) {
-        if (LOG_LEVEL === "DEBUG")
-          console.log(`Skipping channel idx ${i} due to empty contents`);
+    for (var j = 0; j < blocks.length; j++) {
+      const block = blocks[j];
+      const channelTitle = block?.connections?.[0].title;
+      console.log(`>>> blocks iter ${j} start`, {
+        channel_name: channelTitle,
+      });
+      if (selectedChannelsNames.includes(channelTitle)) {
         continue;
       }
-      console.log(">> blocks loop start");
-      for (var j = 0; j < channel.contents?.length; j++) {
-        console.log(`>>> blocks iter ${j} start`, {
-          channel_name: channel.title
-        });
-        const block = channel.contents[j];
-        let block_connected_date = new Date(
-          Math.min.apply(null, [
-            new Date(block?.connections?.[0]?.created_at || block.created_at),
-            new Date(block?.connections?.[0]?.created_at || block.created_at)
-          ])
-        );
-        console.log(
-          `>>> considering block #${block.id} "${
-            block.title
-          }" to post, in date range SINCE:${postNewBlocksSince?.toDateString()} < ${block_connected_date} <= TILL:${postNewBlocksTill?.toDateString()}`
-        );
-        if (
-          block_connected_date > postNewBlocksSince &&
-          block_connected_date <= postNewBlocksTill
-        ) {
-          console.log(`>>>> adding block to post, since in date range`);
-          blocksToTweet[block.id] = block;
-          if (block.id in blockChannelsMap) {
-            blockChannelsMap[block.id].add(channel.title);
-          } else {
-            blockChannelsMap[block.id] = new Set([channel.title]);
-          }
-          allChannelNames.add(channel.title);
-        }
+      let block_connected_date = new Date(
+        Math.min.apply(null, [
+          new Date(block?.connections?.[0]?.created_at || block.created_at),
+          new Date(block?.connections?.[0]?.created_at || block.created_at),
+        ])
+      );
+      console.log(
+        `>>> considering block #${block.id} "${
+          block.title
+        }" to post, in date range SINCE:${postNewBlocksSince?.toDateString()} < ${block_connected_date} <= TILL:${postNewBlocksTill?.toDateString()}`
+      );
+      if (
+        block_connected_date > postNewBlocksSince &&
+        block_connected_date <= postNewBlocksTill
+      ) {
+        console.log(`>>>> adding block to post, since in date range`);
+        blocksToTweet[block.id] = block;
       }
-      console.log(">> blocks loop finish");
-      if (LOG_LEVEL === "DEBUG")
-        console.log({
-          name: channel.title,
-          blocks_preview: channel.contents
-            ?.slice(0, 5)
-            .map(block => block.title)
-        });
     }
-    console.log("ARENA", blocksToTweet);
-    if (LOG_LEVEL === "DEBUG")
-      console.log("ARENA", blocksToTweet, blockChannelsMap);
-  } catch (err) {
-    console.error("ARENA ERR", err);
-  } finally {
-    return {
+    console.log({
+      title: "ARENA",
       blocksToTweet,
-      allChannelNames
-    };
+    });
+  } catch (err) {
+    console.error("ERR filtering blocks, returning all!", err);
+    return blocksMap;
+  } finally {
+    return blocksToTweet;
   }
 }

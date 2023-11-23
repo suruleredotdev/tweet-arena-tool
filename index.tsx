@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import InfiniteScroll from "react-infinite-scroller";
 import {
-  getBlocksToPost,
+  loadBlocksFromAllChannels,
+  filterBlocks,
   arenaClient,
   ARENA_USER,
   fmtBlockAsTweet
@@ -46,7 +47,7 @@ const MOCK_CONTENT: Content = {
   profileImageUrl: "https://avatars0.githubusercontent.com/u/38799309?v=4",
   bodyImageUrl:
     "https://3.bp.blogspot.com/-Chu20FDi9Ek/WoOD-ehQ29I/AAAAAAAAK7U/mc4CAiTYOY8VzOFzBKdR52aLRiyjqu0MwCLcBGAs/s1600/DSC04596%2B%25282%2529.JPG",
-  profileName: "profile name",
+  profileName: "mock profile name",
   bodyText:
     "Lord of the Rings is my favorite film-series. One day I'll make my way to New Zealand to visit the Hobbiton set!",
   commentCount: 14,
@@ -121,11 +122,11 @@ const ContentBlock = ({
   // commentCount,
   // commentPreview,
   postDate,
-  key,
+  idKey,
   onClick
-}: Content & { key: string; onClick?: (e: any) => void }) => (
+}: Content & { idKey: string; onClick?: (e: any) => void }) => (
   <div
-    id={key}
+    key={idKey}
     className=" rounded overflow-hidden border w-full lg:w-3/4 md:w-3/4 bg-white mx-3 md:mx-0 lg:mx-0"
     onClick={onClick || (() => {})}
   >
@@ -169,9 +170,11 @@ const ContentBlock = ({
 );
 
 const HomePage = () => {
-  const [channels, setChannels] = useState([]);
+  // output state
   const [blocks, setBlocks] = useState<Record<string, Arena.Block>>({});
   const [tweets, setTweets] = useState<RssFeedItem[]>([]);
+  // input state
+  const [channelNames, setChannelNames] = useState<Array<string>>([]); // TODO: change to inputs of channel names
   const [start, setStart] = useState(
     window.localStorage.getItem("startDate") ?
       new Date(window.localStorage.getItem("startDate"))
@@ -187,48 +190,43 @@ const HomePage = () => {
 
   const BLOCK_LIMIT = 25;
 
-  console.log("ARGS", { start, end });
+  console.log("UI ARGS", { start, end });
 
-  // load Are.na content - triggered by change to start/end date inputs
+  // SETUP INIT & LIFECYCLE EFFECTS
+  // React advises to declare the async function directly inside useEffect
+  // "load" blocks (un/named fns)
+
+  /*
+    TODO: load login details (ARENA_USER.id & ARENA_USER.personal_access_token)
+    via prompt (https://www.w3schools.com/jsref/tryit.asp?filename=tryjsref_prompt)
+    and useEffect (so it happens on document load)
+    pass these details to initialize the arenaClient in lib.ts
+  */
+
   useEffect(() => {
     console.log("EFFECT");
-    // React advises to declare the async function directly inside useEffect
-    async function loadChannelsAndBlocks() {
-      const channels = await arenaClient.user(ARENA_USER.id).channels();
-      setChannels(channels);
-      console.log(
-        "ARENA channels resp",
-        channels?.map((c: Arena.Channel) => c.title),
-        channels?.length
-      );
-      const { blocksToTweet } = await getBlocksToPost(channels, start, end);
-      const blockTitlesToId = Object.fromEntries(
-        Object.values(blocksToTweet)?.map((b: Arena.Block) => [b.title, b.id])
-      );
-      console.log("blockTitles to ID", {
-        blockTitlesToId
-      });
-      setBlocks(blocksToTweet);
-    }
-
-    async function filterLoadedBlocks() {
-      const { blocksToTweet } = await getBlocksToPost(channels, start, end);
-      setBlocks(blocksToTweet);
-    }
-
-    // You need to restrict it at some point
-    if (!channels?.length || !Object.keys(blocks)?.length) {
+    if (!Object.keys(blocks)?.length) {
       console.log("GETTING CHANNELS & BLOCKS");
-      loadChannelsAndBlocks();
-    } else {
-      filterLoadedBlocks();
+      (async () => {
+        try {
+          const {
+            blocksMap,
+            channelNamesToBlockIds,
+          } = await loadBlocksFromAllChannels();
+          setBlocks(blocksMap);
+          setChannelNames(Object.keys(channelNamesToBlockIds));
+        } catch (err) {
+          console.error("ARENA ERR", err);
+          throw err
+        }
+      })();
     }
-  }, [start, end]);
+  });
   if (blocks?.length && arenaToContentBlock) {
     console.log({
       block1: blocks?.[0],
       content1: arenaToContentBlock(blocks?.[0]),
-      channels
+      channels: channelNames
     });
   }
 
@@ -302,51 +300,68 @@ const HomePage = () => {
             window.localStorage.setItem("endDate", value)
           }}
         />
+
+        <label htmlFor="clearStorage">Clear Storage</label>
+        <button
+          id="clearStorage"
+          name="clearStorage"
+          value="Clear Storage"
+          onClick={_ => {
+            window.localStorage.clear()
+          }}
+        />
+
       </div>
 
       <div className={"flex flex-row "}>
         <div
           className={"arena-blocks w-1/3 flex flex-row space-y-4"}
-          style={{ height: "75%", overflow: "auto" }}
+          style={{ height: "75%", overflow: "y" }}
         >
           <h2>ARE.NA</h2>
           {/* TODO: answer: do we really need infinite scroll rn, fully implement
             pagination withb loadMore
           `*/}
-          <InfiniteScroll
-            pageStart={0}
-            loadMore={() => {}}
-            hasMore={true}
-            loader={
-              <div className="loader" key={0}>
-                Loading ...
-              </div>
-            }
-            useWindow={false}
+          <div
+            className={"flex flex-col space-y-4"}
+            style={{ height: "700px", overflow: "y" }}
           >
-            {Object.values(blocks)
-              .slice(0, BLOCK_LIMIT)
-              .sort(
-                (a, b) =>
-                  new Date(b.updated_at).getTime() -
-                  new Date(a.updated_at).getTime()
-              )
-              .map((block: Arena.Block) => {
-                const data = arenaToContentBlock(block);
-                return (
-                  <ContentBlock
-                    {...data}
-                    key={"block-" + block.id}
-                    onClick={_ => {
-                      window.open(
-                        TWEET_INTENT_URL +
-                          encodeURIComponent(fmtBlockAsTweet(block))
-                      );
-                    }}
-                  />
-                );
-              })}
-          </InfiniteScroll>
+            <InfiniteScroll
+              pageStart={0}
+              loadMore={() => {}}
+              hasMore={true}
+              loader={
+                <div className="loader" key={0}>
+                  Loading ...
+                </div>
+              }
+              useWindow={false}
+            >
+              {Object.values(filterBlocks(blocks, channelNames, start, end))
+                .slice(0, BLOCK_LIMIT)
+                .sort(
+                  (a, b) =>
+                    new Date(b.updated_at).getTime() -
+                    new Date(a.updated_at).getTime()
+                )
+                .map((block: Arena.Block) => {
+                  const data = arenaToContentBlock(block);
+                  return (
+                    <ContentBlock
+                      {...data}
+                      key={"block-" + block.id}
+                      idKey={"block-" + block.id}
+                      onClick={_ => {
+                        window.open(
+                          TWEET_INTENT_URL +
+                            encodeURIComponent(fmtBlockAsTweet(block))
+                        );
+                      }}
+                    />
+                  );
+                })}
+            </InfiniteScroll>
+          </div>
         </div>
 
         <div
@@ -358,6 +373,7 @@ const HomePage = () => {
             <ContentBlock
               {...rssToContentBlock(tweet)}
               key={"tweet-" + getTweetIdFromUrl(tweet.url)}
+              idKey={"tweet-" + getTweetIdFromUrl(tweet.url)}
             />
           ))}
         </div>
@@ -371,7 +387,7 @@ const HomePage = () => {
 
             <code>
               {JSON.stringify(
-                { blocks: Object.values(blocks), channels },
+                { blocks: Object.values(blocks) },
                 null,
                 2
               )}
