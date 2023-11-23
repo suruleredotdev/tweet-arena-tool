@@ -41,11 +41,26 @@ jobs:
       - run: npm install --save-dev webpack dotenv-webpack cross-env typescript @types/react @next/bundle-analyzer # arg src: https://github.com/apotdevin/thunderhub/issues/104#issuecomment-665566260
       - run: npm install --production=false
       - run: npm run build
-      - name: Upload Artifacts
-        uses: actions/upload-pages-artifact@v0
+      # inlined from actions/upload-pages-artifact@v0
+      - name: Archive artifact
+        shell: sh
+        if: runner.os == 'Linux'
+        run: |
+          tar \
+            --dereference --hard-dereference \
+            --directory ./ \
+            -cvf "$RUNNER_TEMP/artifact.tar" \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=node_modules \
+            .
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
-          path: ./
+          name: Upload artifact
+          path: ${{ runner.temp }}/artifact.tar
           retention-days: 7
+          if-no-files-found: error
 
   # Deploy job
   deploy:
