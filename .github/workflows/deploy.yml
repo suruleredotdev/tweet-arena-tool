@@ -22,11 +22,9 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     env:
-      NOTION_SECRET: ${{ secrets.NOTION_SECRET }}
       ARENA_UID: ${{ secrets.ARENA_UID }}
       ARENA_SECRET: ${{ secrets.ARENA_SECRET }}
       ARENA_PERSONAL_ACCESS_TOKEN: ${{ secrets.ARENA_PERSONAL_ACCESS_TOKEN }}
-      NEXT_PUBLIC_BASE_PATH: ${{ vars.NEXT_PUBLIC_BASE_PATH }}
       NODE_ENV: production
       DEBUG: info
 
@@ -39,7 +37,7 @@ jobs:
           cache: 'npm'
           ref: ${{ inputs.commit_version }}
       - run: npm install --save-dev webpack dotenv-webpack cross-env typescript @types/react @next/bundle-analyzer # arg src: https://github.com/apotdevin/thunderhub/issues/104#issuecomment-665566260
-      - run: npm install --production=false
+      - run: npm install --production=false # so devDependencies are installed, despite NODE_ENV
       - run: npm run build
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v0
