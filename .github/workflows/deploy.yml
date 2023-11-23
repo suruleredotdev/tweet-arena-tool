@@ -39,7 +39,7 @@ jobs:
           cache: 'npm'
           ref: ${{ inputs.commit_version }}
       - run: npm install --save-dev cross-env typescript @types/react @next/bundle-analyzer # arg src: https://github.com/apotdevin/thunderhub/issues/104#issuecomment-665566260
-      - run: npm run install
+      - run: npm install
       - run: npm run build
       - run: npm run export
       - name: Upload Artifacts
