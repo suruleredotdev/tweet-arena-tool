@@ -250,8 +250,14 @@ const HomePage = () => {
       console.log("GETTING CHANNELS & BLOCKS");
       (async () => {
         try {
+          const arenaAccessToken =
+            window.localStorage.getItem("arenaAccessToken") ||
+            process.env.ARENA_PERSONAL_ACCESS_TOKEN;
+          const arenaClient = arenaAccessToken
+            ? new Arena({ accessToken: arenaAccessToken })
+            : defaultArenaClient;
           const { blocksMap, channelNamesToBlockIds } =
-            await loadBlocksFromAllChannels(defaultArenaClient);
+            await loadBlocksFromAllChannels(arenaClient);
           setBlocks(blocksMap);
           setChannelNames(Object.keys(channelNamesToBlockIds));
         } catch (err) {
