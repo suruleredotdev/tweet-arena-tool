@@ -58,6 +58,8 @@ const MOCK_CONTENT: Content = {
   postDate: new Date(),
 };
 
+const ARENA_UID = "YTnJJj7L0qQB5XajPlR5TzIsqW17Od-81667rLEaIs8";
+
 function arenaToContentBlock(arenaBlock: Arena.Block): Content {
   if (!arenaBlock) return MOCK_CONTENT;
   return {
@@ -208,7 +210,7 @@ const HomePage = () => {
       window.localStorage.getItem("arenaAccessToken") ||
       process.env.ARENA_PERSONAL_ACCESS_TOKEN;
 
-    const arenaClientId = process.env.ARENA_UID;
+    const arenaClientId = ARENA_UID;
     const callbackUrl = `https://tweet-arena-tool.surulere.dev`;
     const urlParams = new URLSearchParams(window.location.search);
     const requestAuthWithRedirect = async function () {
