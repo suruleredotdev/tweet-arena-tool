@@ -1,15 +1,10 @@
 import Arena from "are.na";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import InfiniteScroll from "react-infinite-scroller";
 import {
-  loadBlocksFromAllChannels,
   filterBlocks,
   defaultArenaClient,
-  ARENA_USER,
   fmtBlockAsTweet,
-  requestAccessToken,
-  fetchArenaChannels
 } from "./lib";
 
 type Content = {
