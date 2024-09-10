@@ -67,6 +67,9 @@ const ARENA_CLIENT_SECRET =
   window.localStorage.getItem("arenaClientSecret") ||
   process.env.ARENA_CLIENT_SECRET;
 
+const APP_BASE_URL = window.location.origin || `https://tweet-arena-tool.surulere.dev`;
+const FUNCTIONS_BASE_URL = window.location.origin + "/.netlify/functions/";
+
 function arenaToContentBlock(arenaBlock: Arena.Block): Content {
   if (!arenaBlock) return MOCK_CONTENT;
   return {
@@ -219,29 +222,40 @@ const HomePage = () => {
   useEffect(() => {
     console.log("EFFECT: INIT");
     const arenaClientId = ARENA_UID;
-    const callbackUrl = `https://tweet-arena-tool.surulere.dev`;
+    const callbackUrl = APP_BASE_URL;
     const urlParams = new URLSearchParams(window.location.search);
     const requestAuthWithRedirect = async function () {
       window.location.href = `http://dev.are.na/oauth/authorize?client_id=${encodeURIComponent(
         arenaClientId
       )}&redirect_uri=${encodeURIComponent(callbackUrl)}&response_type=code`;
     };
+    async function getArenaAccessToken(authCode: string) {
+      const response = await fetch(FUNCTIONS_BASE_URL + "getArenaAccessToken", {
+        body: JSON.stringify({
+          auth_code: authCode
+        })
+      });
+      // TODO: handle errors from calling this function
+      // if (response.ok) {
+      //   throw / snackbar
+      // }
+      const { access_token: accessToken } = await response.json();
+      return accessToken;
+    }
 
     // TODO: make this an effect?
     (async () => {
       let arenaAccessToken =
-        window.localStorage.getItem("arenaAccessToken") ||
-        process.env.ARENA_PERSONAL_ACCESS_TOKEN;
+        window.localStorage.getItem("arenaAccessToken") /*||
+        process.env.ARENA_PERSONAL_ACCESS_TOKEN*/;
       if (!arenaAccessToken) {
         const authCode = urlParams.get("code");
         if (!authCode) {
           // request auth
           await requestAuthWithRedirect();
         } else {
-          arenaAccessToken = await requestAccessToken(
+          arenaAccessToken = await getArenaAccessToken(
             authCode,
-            arenaClientId,
-            ARENA_CLIENT_SECRET,
           );
         }
       }
