@@ -227,6 +227,7 @@ const HomePage = () => {
     };
     async function getArenaAccessToken(authCode: string) {
       const response = await fetch(FUNCTIONS_BASE_URL + "getArenaAccessToken", {
+        method: "POST",
         body: JSON.stringify({
           auth_code: authCode
         })
