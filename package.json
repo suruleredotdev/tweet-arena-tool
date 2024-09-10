@@ -16,7 +16,7 @@
   "scripts": {
     "test": "mocha 'src/test/**/*.ts'",
     "start": "webpack serve --watch --mode=development",
-    "build": "npm install --only=dev && webpack --mode=production",
+    "build": "webpack --mode=production",
     "noop": "exit 0",
     "deploy-vercel": "vercel deploy",
     "homepage": "https://suruleredotdev.github.io/tweet-arena-tool",
