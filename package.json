@@ -25,6 +25,8 @@
     "format": "prettier --write \"*.+(ts|tsx|js|jsx|json|css|md)\""
   },
   "dependencies": {
+    "@netlify/functions": "^2.8.1",
+    "@vercel/node": "^3.0.11",
     "are.na": "^0.1.5",
     "dompurify": "^3.0.5",
     "react": "^18.2.0",
