@@ -131,3 +131,38 @@ export function filterBlocks(
     return blocksToTweet;
   }
 }
+
+export const requestAccessToken = async function (
+  authCode: string,
+  arenaClientId: string,
+  arenaClientSecret: string,
+  callbackUrl: string = ""
+) {
+  const url = `https://dev.are.na/oauth/token?client_id=${encodeURIComponent(
+    arenaClientId
+  )}&client_secret=${arenaClientSecret}&code=${authCode}&grant_type=authorization_code&redirect_uri=${encodeURIComponent(
+    callbackUrl
+  )}`;
+  const resp = await fetch(url, { method: "POST" });
+  const json = await resp.json();
+  console.log({
+    title: "arena access token request",
+    json,
+  });
+  window.localStorage.setItem("arenaAccessToken", json.access_token);
+  return json.access_token;
+};
+
+export const fetchArenaChannels = async (arenaClient: Arena) => {
+  try {
+    const { blocksMap, channelNamesToBlockIds } =
+      await loadBlocksFromAllChannels(arenaClient);
+    return {
+      blocksMap,
+      channelNamesToBlockIds,
+    };
+  } catch (err) {
+    console.error("ARENA ERR", err);
+    throw err;
+  }
+};

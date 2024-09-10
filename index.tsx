@@ -8,6 +8,8 @@ import {
   defaultArenaClient,
   ARENA_USER,
   fmtBlockAsTweet,
+  requestAccessToken,
+  fetchArenaChannels
 } from "./lib";
 
 type Content = {
@@ -40,7 +42,7 @@ export interface Author {
 
 const DEFAULT_ARGS = {
   start: new Date("2023/10/01"),
-  end: new Date("2023/10/31"),
+  end: new Date("2024/9/10"),
 };
 
 const MOCK_CONTENT: Content = {
@@ -58,8 +60,12 @@ const MOCK_CONTENT: Content = {
   postDate: new Date(),
 };
 
-const ARENA_UID = "YTnJJj7L0qQB5XajPlR5TzIsqW17Od-81667rLEaIs8";
-const ARENA_CLIENT_SECRET = "Xv2a-2QatR6xHjP6rh8xAzjjach0ZvBCfDqNn1tHkh8";
+const ARENA_UID =
+  window.localStorage.getItem("arenaUid") ||
+  process.env.ARENA_UID;
+const ARENA_CLIENT_SECRET =
+  window.localStorage.getItem("arenaClientSecret") ||
+  process.env.ARENA_CLIENT_SECRET;
 
 function arenaToContentBlock(arenaBlock: Arena.Block): Content {
   if (!arenaBlock) return MOCK_CONTENT;
@@ -130,7 +136,7 @@ const ContentBlock = ({
 }: Content & { idKey: string; onClick?: (e: any) => void }) => (
   <div
     key={idKey}
-    className=" rounded overflow-hidden border w-full lg:w-3/4 md:w-3/4 bg-white mx-3 md:mx-0 lg:mx-0"
+    className="rounded overflow-hidden border w-full lg:w-3/4 md:w-3/4 bg-white mx-3 md:mx-0 lg:mx-0 pointer dim"
     onClick={onClick || (() => {})}
   >
     <div className="w-full flex justify-between p-3">
@@ -191,7 +197,7 @@ const HomePage = () => {
 
   const [toggleRowCol, setToggleRowCol] = useState<"row" | "col">("row");
 
-  const BLOCK_LIMIT = 25;
+  const BLOCK_LIMIT = 50;
 
   console.log("UI ARGS", { start, end });
 
@@ -201,14 +207,17 @@ const HomePage = () => {
 
   /*
     TODO: load login details (ARENA_USER.id & ARENA_USER.personal_access_token)
-    via prompt (https://www.w3schools.com/jsref/tryit.asp?filename=tryjsref_prompt)
-    and useEffect (so it happens on document load)
+    via prompt and useEffect (so it happens on document load)
     pass these details to initialize the arenaClient in lib.ts
   */
 
+  // move this logic of the enclosed functions into a class
+  // constructed from these first few variables.
+  // the last nameless function will be the main async run
+  // function that's called un-awaited, with a callback
+  // to setBlocks or setChannelNames
   useEffect(() => {
     console.log("EFFECT: INIT");
-
     const arenaClientId = ARENA_UID;
     const callbackUrl = `https://tweet-arena-tool.surulere.dev`;
     const urlParams = new URLSearchParams(window.location.search);
@@ -217,36 +226,8 @@ const HomePage = () => {
         arenaClientId
       )}&redirect_uri=${encodeURIComponent(callbackUrl)}&response_type=code`;
     };
-    const requestAccessToken = async function (authCode: string) {
-      const url = `https://dev.are.na/oauth/token?client_id=${encodeURIComponent(
-        arenaClientId
-      )}&client_secret=${
-        ARENA_CLIENT_SECRET
-      }&code=${authCode}&grant_type=authorization_code&redirect_uri=${encodeURIComponent(
-        callbackUrl
-      )}`;
-      const resp = await fetch(url, { method: "POST" });
-      const json = await resp.json();
-      console.log({
-        title: "arena access token request",
-        json,
-      });
-      window.localStorage.setItem("arenaAccessToken", json.access_token);
-      return json.access_token;
-    };
 
-    const fetchArenaChannels = async (arenaClient: Arena) => {
-      try {
-        const { blocksMap, channelNamesToBlockIds } =
-          await loadBlocksFromAllChannels(arenaClient);
-        setBlocks(blocksMap);
-        setChannelNames(Object.keys(channelNamesToBlockIds));
-      } catch (err) {
-        console.error("ARENA ERR", err);
-        throw err;
-      }
-    };
-
+    // TODO: make this an effect?
     (async () => {
       let arenaAccessToken =
         window.localStorage.getItem("arenaAccessToken") ||
@@ -257,14 +238,21 @@ const HomePage = () => {
           // request auth
           await requestAuthWithRedirect();
         } else {
-          arenaAccessToken = await requestAccessToken(authCode);
+          arenaAccessToken = await requestAccessToken(
+            authCode,
+            arenaClientId,
+            ARENA_CLIENT_SECRET,
+          );
         }
       }
       const arenaClient = arenaAccessToken
         ? new Arena({ accessToken: arenaAccessToken })
         : defaultArenaClient;
       if (!Object.keys(blocks)?.length) {
-        await fetchArenaChannels(arenaClient);
+        const { blocksMap, channelNamesToBlockIds } =
+          await fetchArenaChannels(arenaClient);
+        setBlocks(blocksMap);
+        setChannelNames(Object.keys(channelNamesToBlockIds));
       }
       if (blocks?.length && arenaToContentBlock) {
         console.log({
@@ -281,7 +269,6 @@ const HomePage = () => {
     "https://rss.app/feeds/v1.1/cDaks50fS2vLZRo3.json";
   useEffect(() => {
     async function getTwitterFeed() {
-      console.log({ TWITTER_FEED_RSS_URL });
       const response = await fetch(TWITTER_FEED_RSS_URL + "?hl=en&n=200");
       const jsonBody = await response.json();
       if (!jsonBody?.items) {
@@ -325,7 +312,7 @@ const HomePage = () => {
           id="startdate"
           name="startdate"
           value={start.toISOString().slice(0, 16)}
-          onInput={(event) => {
+          onChange={(event) => {
             const value = (event.target as HTMLInputElement).value;
             console.log("input.change:setStartDate", value);
             setStart(new Date(value));
@@ -339,7 +326,7 @@ const HomePage = () => {
           id="enddate"
           name="enddate"
           value={end.toISOString().slice(0, 16)}
-          onInput={(event) => {
+          onChange={(event) => {
             const value = (event.target as HTMLInputElement).value;
             console.log("input.change:setEndDate", value);
             setEnd(new Date(value));
@@ -360,64 +347,48 @@ const HomePage = () => {
 
       <div className={"flex flex-row "}>
         <div
-          className={"arena-blocks w-1/3 flex flex-row space-y-4"}
+          className={"arena-blocks w-1/3 flex flex-col space-y-4"}
           style={{ height: "75%", overflow: "y" }}
         >
-          <h2>ARE.NA</h2>
+          <div className={"p-3"}> 
+            <h2>ARE.NA BLOCKS</h2>
+            <p>Instructions: 
+              <br/>
+              1. Click on a block to tweet it
+              <br/>
+              2. (Coming soon) Select multiple blocks to tweet as a thread it
+              <br/>
+              3. (Coming soon) Search archive for references for tweet
+            </p>
+          </div> 
           <div
-            className={"flex flex-col space-y-4"}
-            style={{ height: "700px", overflow: "y" }}
+            className={"flex flex-col space-y-4 p-3"}
+            style={{ height: "100%", overflow: "y" }}
           >
-            <InfiniteScroll
-              pageStart={0}
-              loadMore={() => {}}
-              hasMore={true}
-              loader={
-                <div className="loader" key={0}>
-                  Loading ...
-                </div>
-              }
-              useWindow={false}
-            >
-              {Object.values(filterBlocks(blocks, channelNames, start, end))
-                .slice(0, BLOCK_LIMIT)
-                .sort(
-                  (a, b) =>
-                    new Date(b.updated_at).getTime() -
-                    new Date(a.updated_at).getTime()
-                )
-                .map((block: Arena.Block) => {
-                  const data = arenaToContentBlock(block);
-                  return (
-                    <ContentBlock
-                      {...data}
-                      key={"block-" + block.id}
-                      idKey={"block-" + block.id}
-                      onClick={(_) => {
-                        window.open(
-                          TWEET_INTENT_URL +
-                            encodeURIComponent(fmtBlockAsTweet(block))
-                        );
-                      }}
-                    />
-                  );
-                })}
-            </InfiniteScroll>
+            {Object.values(filterBlocks(blocks, channelNames, start, end))
+              .slice(0, BLOCK_LIMIT)
+              .sort(
+                (a, b) =>
+                  new Date(a.updated_at).getTime() -
+                  new Date(b.updated_at).getTime()
+              )
+              .map((block: Arena.Block) => {
+                const data = arenaToContentBlock(block);
+                return (
+                  <ContentBlock
+                    {...data}
+                    key={"block-" + block.id}
+                    idKey={"block-" + block.id}
+                    onClick={(_) => {
+                      window.open(
+                        TWEET_INTENT_URL +
+                          encodeURIComponent(fmtBlockAsTweet(block))
+                      );
+                    }}
+                  />
+                );
+              })}
           </div>
-        </div>
-
-        <div
-          className={"rss-tweets w-1/3 flex flex-col space-y-4"}
-          style={{ height: "75%", overflow: "auto" }}
-        >
-          <h2 className={""}>TWITTER</h2>
-          {tweets?.map((tweet: RssFeedItem) => (
-            <ContentBlock
-              {...rssToContentBlock(tweet)}
-              key={"tweet-" + getTweetIdFromUrl(tweet.url)}
-              idKey={"tweet-" + getTweetIdFromUrl(tweet.url)}
-            />
-          ))}
         </div>
 
         <div className={"debug-state w-1/3"}>
