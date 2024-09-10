@@ -5,6 +5,7 @@ import {
   filterBlocks,
   defaultArenaClient,
   fmtBlockAsTweet,
+  fetchArenaChannels
 } from "./lib";
 
 type Content = {

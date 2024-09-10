@@ -5,6 +5,5 @@ export {
   fmtBlockAsTweet,
   loadBlocksFromAllChannels,
   filterBlocks,
-  requestAccessToken,
-  fetchArenaChannels
+  fetchArenaChannels,
 } from "./arena";
