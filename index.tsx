@@ -63,7 +63,7 @@ const ARENA_UID =
 const RUNNING_ON_NETLIFY = process.env.NETLIFY !== "true";
 const APP_BASE_URL = window.location.origin || `https://tweet-arena-tool.surulere.dev`;
 const FUNCTIONS_BASE_URL = (
-   RUNNING_ON_NETLIFY ? "http://localhost:9999" :  window.location.origin
+   RUNNING_ON_NETLIFY ? window.location.origin : "http://localhost:9999"
 ) + "/.netlify/functions/";
 
 function arenaToContentBlock(arenaBlock: Arena.Block): Content {
