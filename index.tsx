@@ -60,11 +60,11 @@ const ARENA_UID =
   window.localStorage.getItem("arenaUid") ||
   process.env.ARENA_UID;
 
+const RUNNING_ON_NETLIFY = process.env.NETLIFY !== "true";
 const APP_BASE_URL = window.location.origin || `https://tweet-arena-tool.surulere.dev`;
 const FUNCTIONS_BASE_URL = (
-  process.env.NODE_ENV === "development" ? "http://localhost:9999" :  window.location.origin
+   RUNNING_ON_NETLIFY ? "http://localhost:9999" :  window.location.origin
 ) + "/.netlify/functions/";
-console.log({NODE_ENV: process.env.NODE_ENV, FUNCTIONS_BASE_URL })
 
 function arenaToContentBlock(arenaBlock: Arena.Block): Content {
   if (!arenaBlock) return MOCK_CONTENT;
