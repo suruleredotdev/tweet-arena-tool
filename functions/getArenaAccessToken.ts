@@ -7,9 +7,9 @@ import type { Handler } from "@netlify/functions";
  */
 export const requestAccessToken = async function (
   authCode: string,
+  callbackUrl: string,
   arenaClientId: string,
-  arenaClientSecret: string,
-  callbackUrl: string = ""
+  arenaClientSecret: string
 ) {
   const url = `https://dev.are.na/oauth/token?client_id=${encodeURIComponent(
     arenaClientId
@@ -19,21 +19,26 @@ export const requestAccessToken = async function (
   const resp = await fetch(url, { method: "POST" });
   const json = await resp.json();
   console.log({
-    title: "arena access token request",
+    title: "arena access token response",
+    status: resp.status,
     json,
   });
-  window.localStorage.setItem("arenaAccessToken", json.access_token);
   return json.access_token;
 };
 
 export const handler: Handler = async (event: Request, _) => {
-  const eventBody = await event.json();
+  const eventBody = JSON.parse(event.body);
+  console.log({
+    UID: process.env.ARENA_UID,
+    SECRET: process.env.ARENA_SECRET,
+  });
   return {
     body: JSON.stringify({
       access_token: await requestAccessToken(
         eventBody.auth_code,
+        eventBody.redirect_uri,
         process.env.ARENA_UID,
-        process.env.ARENA_CLIENT_SECRET
+        process.env.ARENA_SECRET
       ),
     }),
     statusCode: 200,

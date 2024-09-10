@@ -59,12 +59,12 @@ const MOCK_CONTENT: Content = {
 const ARENA_UID =
   window.localStorage.getItem("arenaUid") ||
   process.env.ARENA_UID;
-const ARENA_CLIENT_SECRET =
-  window.localStorage.getItem("arenaClientSecret") ||
-  process.env.ARENA_CLIENT_SECRET;
 
 const APP_BASE_URL = window.location.origin || `https://tweet-arena-tool.surulere.dev`;
-const FUNCTIONS_BASE_URL = window.location.origin + "/.netlify/functions/";
+const FUNCTIONS_BASE_URL = (
+  process.env.NODE_ENV === "development" ? "http://localhost:9999" :  window.location.origin
+) + "/.netlify/functions/";
+console.log({NODE_ENV: process.env.NODE_ENV, FUNCTIONS_BASE_URL })
 
 function arenaToContentBlock(arenaBlock: Arena.Block): Content {
   if (!arenaBlock) return MOCK_CONTENT;
@@ -229,7 +229,8 @@ const HomePage = () => {
       const response = await fetch(FUNCTIONS_BASE_URL + "getArenaAccessToken", {
         method: "POST",
         body: JSON.stringify({
-          auth_code: authCode
+          auth_code: authCode,
+          redirect_uri: callbackUrl
         })
       });
       // TODO: handle errors from calling this function
@@ -254,6 +255,7 @@ const HomePage = () => {
           arenaAccessToken = await getArenaAccessToken(
             authCode,
           );
+          window.localStorage.setItem("arenaAccessToken", arenaAccessToken);
         }
       }
       const arenaClient = arenaAccessToken
@@ -300,11 +302,6 @@ const HomePage = () => {
       tweet1to5: tweets?.slice(0, 5),
       numTweets: tweets?.length,
     });
-  }
-
-  function getTweetIdFromUrl(url: string) {
-    const parts = url?.split("/");
-    return parts?.[parts.length - 1] || "";
   }
 
   const TWEET_INTENT_URL = `https://twitter.com/intent/tweet?text=`;
